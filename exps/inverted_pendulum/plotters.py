@@ -371,8 +371,9 @@ def plot_pendulum_trajectories(agent, environment, episode: int):
     plt.suptitle(f"{name} Episode {episode + 1}", x=0.53, y=0.96)
 
     plt.tight_layout()
-    plt.savefig(f"{agent.logger.log_dir}/{episode + 1}.pdf")
+    os.makedirs(f"{agent.logger.log_dir}/figs", exist_ok=True)
+    plt.savefig(f"{agent.logger.log_dir}/figs/{episode + 1}")
 
-    if "DISPLAY" in os.environ:
-        plt.show()
+    # if "DISPLAY" in os.environ:
+    #     plt.show()
     plt.close(fig)

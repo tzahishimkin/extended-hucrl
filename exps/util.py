@@ -278,7 +278,10 @@ def get_mb_mpo_agent(
     )
 
     model_name = dynamical_model.base_model.name
-    comment = f"{model_name} {params.exploration.capitalize()} {params.action_cost}"
+    comment = f"{model_name} " \
+              f"{params.exploration.capitalize()} " \
+              f"{params.action_cost} " \
+              f"{params.initial_dist}"
 
     agent = MBMPOAgent(
         policy=policy,

@@ -432,12 +432,19 @@ def get_agent_and_environment(params, agent_name):
     torch.set_num_threads(params.num_threads)
 
     # %% Define Environment.
-    initial_distribution = torch.distributions.Uniform(
-        torch.tensor([np.pi, -0.0]), torch.tensor([np.pi, +0.0])
-    )
+    if params.initial_dist == 'all':
+        initial_distribution = torch.distributions.Uniform(
+            torch.tensor([-np.pi, -0.005]), torch.tensor([np.pi, +0.005])
+        )
+    else: # params.initial_dist == 'bottom':
+        initial_distribution = torch.distributions.Uniform(
+            torch.tensor([np.pi, -0.005]), torch.tensor([np.pi, 0.005])
+        )
+
+
     reward_model = PendulumReward(action_cost=params.action_cost)
     environment = SystemEnvironment(
-        InvertedPendulum(mass=0.3, length=0.5, friction=0.005, step_size=1 / 80),
+        InvertedPendulum(mass=0.001, length=0.5, friction=0.00001, step_size=5 / 80),
         reward=reward_model,
         initial_state=initial_distribution.sample,
         termination_model=large_state_termination,
@@ -467,6 +474,9 @@ def get_agent_and_environment(params, agent_name):
             input_transform=input_transform,
             termination_model=large_state_termination,
             initial_distribution=exploratory_distribution,
+            comment=environment.name + args.env_config_file.split('/')[0] + '_' + str(
+                args.train_episodes) + '_' + args.initial_condition,
+
         )
     elif agent_name == "mbmpo":
         agent = get_mb_mpo_agent(
@@ -506,7 +516,7 @@ def get_mbmpo_parser():
     parser.add_argument(
         "--seed", type=int, default=0, help="initial random seed (default: 0)."
     )
-    parser.add_argument("--train-episodes", type=int, default=10)
+    parser.add_argument("--train-episodes", type=int, default=200)
     parser.add_argument("--test-episodes", type=int, default=1)
     parser.add_argument("--num-threads", type=int, default=1)
     parser.add_argument("--beta", type=float, default=1.0)
@@ -516,6 +526,9 @@ def get_mbmpo_parser():
     environment_parser.add_argument("--action-cost", type=float, default=0.2)
     environment_parser.add_argument("--gamma", type=float, default=0.99)
     environment_parser.add_argument("--environment-max-steps", type=int, default=400)
+
+    environment_parser.add_argument("--initial-dist", type=str, default='all')
+
 
     model_parser = parser.add_argument_group("model")
     model_parser.add_argument(

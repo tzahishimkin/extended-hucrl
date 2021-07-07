@@ -1,3 +1,6 @@
+# output files
+runs/
+saved_models/
 scratch/*
 # IntelliJ
 .idea

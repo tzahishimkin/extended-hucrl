@@ -29,12 +29,13 @@ parser.set_defaults(
     model_kind="ProbabilisticEnsemble",
     model_learn_num_iter=50,
     model_opt_lr=1e-3,
-    seed=1,
+    seed=2,
 )
 
 args = parser.parse_args()
 params = DotMap(vars(args))
 environment, agent = get_agent_and_environment(params, "mbmpo")
+
 set_figure_params(serif=True, fontsize=9)
 train_and_evaluate(
     agent, environment, params, plot_callbacks=[plot_pendulum_trajectories]
