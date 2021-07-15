@@ -29,13 +29,10 @@ def main(args):
     environment = GymEnvironment(
         env_config["name"], ctrl_cost_weight=env_config["action_cost"], seed=args.seed
     )
-    # environment = GymEnvironment(
-    #     env_config["name"], seed=args.seed
-    # )
-
     reward_model = environment.env.reward_model()
+
     if args.exploration == "optimistic":
-        # torch.ToTensor()
+
         dynamical_model = HallucinatedModel.default(environment, beta=args.beta)
         environment.add_wrapper(HallucinationWrapper)
     else:

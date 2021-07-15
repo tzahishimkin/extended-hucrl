@@ -1,18 +1,15 @@
 import os
 import pathlib
 import json
+import argparse
+import importlib
+import scipy.ndimage as ndi
+
 from collections import defaultdict
 from itertools import chain
 
 import numpy as np
 from matplotlib import pyplot as plt
-
-src_dir = 'runs-gpu-before-naming'
-# src_dir = 'runs'
-out_dir = None
-
-if out_dir is not None:
-    os.makedirs(out_dir, exist_ok=True)
 
 
 def load_json(path):
@@ -21,23 +18,10 @@ def load_json(path):
     return data
 
 
-lists = list(pathlib.Path(src_dir).glob('**/*.json'))
-statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
-
-data_statistics = [load_json(path) for path in statistics]
-
-
-# res = defaultdict(list)
-# A = {res[key].append(sub[key]) for sub in data_statistics[0] for key in sub}
-
-
 def to_dict_list(list_dict):
     all_keys = set(chain(*[x.keys() for x in list_dict]))
     dict_list = {k: [d[k] for d in list_dict if k in d] for k in all_keys}
     return dict_list
-
-
-data_statistics = [to_dict_list(d) for d in data_statistics]
 
 
 def remove_invalid_sim(data_statistics, statistics, min_epochs=50):
@@ -48,36 +32,35 @@ def remove_invalid_sim(data_statistics, statistics, min_epochs=50):
     return data_statistics, statistics
 
 
-data_statistics, statistics = remove_invalid_sim(data_statistics, statistics)
+def plot_key(data_statistics, statistics, key, out_dir):
+    d_struct = [(d[key], '-'.join(s_names.split('/')[-3:-1]).split('-s')[0:-1][0])
+                for (d, s_names) in zip(data_statistics, statistics) if key in d]
 
 
-def plot_key(d, s_names, key='train_return'):
-    if key not in d:
-        return
-    rewards = d[key]
-    plt.plot(rewards)
-    plt.title(key)
-    if out_dir is not None:
-        l_names = s_names.split('/')[-3:-1]
-        l_names.insert(0, out_dir)
-        l_names = [l.replace('.', '_') for l in l_names]
-    else:
-        l_names = s_names.split('/')[:-1]
+    # d_struct = sorted(d_struct, key=lambda x: x[1])
+    uniques = np.unique([d[1] for d in d_struct])
+    data = {unique: [d[0] for d in d_struct if d[1] == unique] for unique in uniques}
 
-    l_names.insert(-1, key)
-    save_name = os.path.join(*l_names)
-    os.makedirs(os.path.dirname(save_name), exist_ok=True)
-    plt.savefig(save_name)
-    plt.close()
+    if out_dir is None:
+        out_dir = os.path.join(statistics[0].split('/')[0], 'figures')
+    os.makedirs(out_dir, exist_ok=True)
 
+    for key, value in data.items():
+        fig = plt.figure()
+        m_value = np.median(value, axis=0)
+        m_value = ndi.gaussian_filter(m_value, sigma=10)
+        # m_value = sklearn.
+        plt.plot(m_value)
+        plt.title(key)
+        save_name = os.path.join(out_dir, key) + '.jpg'
+        plt.savefig(save_name)
+        plt.close()
 
-save_keys = ['train_return', 'sim_return']
-# [[plot_key(d, s_names, save_key) for (d, s_names) in zip(data_statistics, statistics)] for save_key in save_keys]
 
 def write_key_value(d, s_names, keys):
-    p_str = l_names = '/'.join(s_names.split('/')[1:-1])
+    p_str = '/'.join(s_names.split('/')[1:-1])
     p_str += ': '
-    any_key_ok = False
+    any_key_valid = False
 
     n_epochs = len(d['train_return'])
 
@@ -88,11 +71,41 @@ def write_key_value(d, s_names, keys):
         values = values[-20:]
         mvalue = np.mean(values)
         p_str += f'{key}={mvalue:.1f},  '
-        any_key_ok = True
-    if any_key_ok:
-        # p_str += f'epoch={n_epochs}'
+        any_key_valid = True
+
+    if 'epochs' in keys:
+        p_str += f'epoch={n_epochs}'
+
+    if any_key_valid:
         return p_str
 
-save_keys = ['train_return', 'eval_return']
-str_list = [write_key_value(d, s_names, save_keys) for (d, s_names) in zip(data_statistics, statistics)]
-print(np.sort(str_list))
+
+def main(args):
+    src_dir = args.src_dir
+    out_dir = args.out_dir
+    if out_dir is not None:
+        os.makedirs(out_dir, exist_ok=True)
+
+    # fetch data
+    lists = list(pathlib.Path(src_dir).glob('**/*.json'))
+    statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
+
+    # arange data
+    data_statistics = [load_json(path) for path in statistics]
+    data_statistics = [to_dict_list(d) for d in data_statistics]
+    data_statistics, statistics = remove_invalid_sim(data_statistics, statistics)
+
+    # plot graphs
+    [plot_key(data_statistics, statistics, save_key, out_dir) for save_key in args.save_keys]
+
+    # write last results (averaged ovber 20 iterations)
+    str_list = [write_key_value(d, s_names, args.save_keys) for (d, s_names) in zip(data_statistics, statistics)]
+    print(np.sort(str_list))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
+    parser.add_argument("--src-dir", type=str, default="runs")
+    parser.add_argument("--out-dir", type=str, default=None)
+    parser.add_argument('--save-keys', type=str, nargs='+', default=['train_return', 'sim_return', 'epochs'])
+    main(parser.parse_args())

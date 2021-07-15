@@ -19,6 +19,9 @@ from rllib.util.neural_networks.utilities import freeze_parameters
 from rllib.util.rollout import rollout_model, rollout_policy
 from rllib.value_function import NNValueFunction
 from torch.distributions import MultivariateNormal
+from rllib.environment import GymEnvironment
+from rllib.model import TransformedModel
+
 from tqdm import tqdm
 
 from exps.inverted_pendulum.plotters import (
@@ -30,6 +33,25 @@ from exps.inverted_pendulum.plotters import (
 from exps.util import get_mb_mpo_agent, get_mpc_agent
 from hucrl.algorithms.mbmpo import MBMPO
 from hucrl.environment.hallucination_wrapper import HallucinationWrapper
+from exps.util import parse_config_file
+
+
+class explore_obs_torch():
+    def __init__(self, environment):
+        super().__init__()
+        self.environment = environment
+
+    def prod(self, tuple_val):
+        res = 1
+        for ele in list(tuple_val):
+            res *= ele
+        return res
+
+    def sample(self, tuple_shape):
+        A = [self.environment.observation_space.sample() for _ in range(self.prod(tuple_shape))]
+        A = torch.tensor(A, dtype=torch.float32)
+        A = torch.reshape(A, tuple_shape + (-1,))
+        return A
 
 
 class StateTransform(nn.Module):
@@ -65,8 +87,8 @@ def large_state_termination(state, action, next_state=None):
     )
     return (
         torch.zeros(*done.shape, 2)
-        .scatter_(dim=-1, index=(~done).long().unsqueeze(-1), value=-float("inf"))
-        .squeeze(-1)
+            .scatter_(dim=-1, index=(~done).long().unsqueeze(-1), value=-float("inf"))
+            .squeeze(-1)
     )
 
 
@@ -107,7 +129,7 @@ class PendulumModel(AbstractModel):
     """
 
     def __init__(
-        self, mass, length, friction, step_size=1 / 80, noise: MultivariateNormal = None
+            self, mass, length, friction, step_size=1 / 80, noise: MultivariateNormal = None
     ):
         super().__init__(dim_state=(2,), dim_action=(1,))
         self.mass = mass
@@ -130,9 +152,9 @@ class PendulumModel(AbstractModel):
         angle, angular_velocity = torch.split(state, 1, dim=-1)
         for _ in range(1):
             x_ddot = (
-                (gravity / length) * torch.sin(angle)
-                + action * (1 / inertia)
-                - (friction / inertia) * angular_velocity
+                    (gravity / length) * torch.sin(angle)
+                    + action * (1 / inertia)
+                    - (friction / inertia) * angular_velocity
             )
 
             angle = angle + dt * angular_velocity
@@ -147,7 +169,7 @@ class PendulumModel(AbstractModel):
 
 
 def test_policy_on_model(
-    dynamical_model, reward_model, policy, test_state, policy_str="Sampled Policy"
+        dynamical_model, reward_model, policy, test_state, policy_str="Sampled Policy"
 ):
     """Test a policy on a model."""
     with torch.no_grad():
@@ -171,7 +193,7 @@ def test_policy_on_model(
 
 
 def test_policy_on_environment(
-    environment, policy, test_state, policy_str="Sampled Policy"
+        environment, policy, test_state, policy_str="Sampled Policy"
 ):
     """Test a policy on an environment."""
     environment.state = test_state.numpy()
@@ -186,15 +208,15 @@ def test_policy_on_environment(
 
 
 def train_mpo(
-    mpo: MBMPO,
-    initial_distribution,
-    optimizer,
-    num_iter,
-    num_trajectories,
-    num_simulation_steps,
-    num_gradient_steps,
-    batch_size,
-    num_subsample,
+        mpo: MBMPO,
+        initial_distribution,
+        optimizer,
+        num_iter,
+        num_trajectories,
+        num_simulation_steps,
+        num_gradient_steps,
+        batch_size,
+        num_subsample,
 ):
     """Train MPO policy."""
     value_losses = []  # type: List[float]
@@ -227,14 +249,14 @@ def train_mpo(
 
 
 def _simulate_model(
-    mpo,
-    initial_distribution,
-    num_trajectories,
-    num_simulation_steps,
-    batch_size,
-    num_subsample,
-    returns,
-    entropy,
+        mpo,
+        initial_distribution,
+        num_trajectories,
+        num_simulation_steps,
+        batch_size,
+        num_subsample,
+        returns,
+        entropy,
 ):
     with torch.no_grad():
         test_states = torch.tensor([np.pi, 0]).repeat(num_trajectories // 2, 1)
@@ -285,20 +307,20 @@ def _optimize_policy(mpo, state_batches, optimizer, num_gradient_steps):
 
 
 def solve_mpo(
-    dynamical_model,
-    action_cost,
-    num_iter,
-    num_sim_steps,
-    batch_size,
-    num_gradient_steps,
-    num_trajectories,
-    num_action_samples,
-    num_episodes,
-    epsilon,
-    epsilon_mean,
-    epsilon_var,
-    regularization,
-    lr,
+        dynamical_model,
+        action_cost,
+        num_iter,
+        num_sim_steps,
+        batch_size,
+        num_gradient_steps,
+        num_trajectories,
+        num_action_samples,
+        num_episodes,
+        epsilon,
+        epsilon_mean,
+        epsilon_var,
+        regularization,
+        lr,
 ):
     """Solve MPO optimization problem."""
     reward_model = PendulumReward(action_cost)
@@ -431,37 +453,49 @@ def get_agent_and_environment(params, agent_name):
     np.random.seed(params.seed)
     torch.set_num_threads(params.num_threads)
 
-    # %% Define Environment.
-    if params.initial_dist == 'all':
-        initial_distribution = torch.distributions.Uniform(
+
+    if params['env_config'] == 'manual_inverted_pendulum':
+        # %% Define Environment.
+        if params.initial_dist == 'all':
+            initial_distribution = torch.distributions.Uniform(
+                torch.tensor([-np.pi, -0.005]), torch.tensor([np.pi, +0.005])
+            )
+        else:  # params.initial_dist == 'bottom':
+            initial_distribution = torch.distributions.Uniform(
+                torch.tensor([np.pi, -0.005]), torch.tensor([np.pi, 0.005])
+            )
+        env_name = params['env_config']
+        reward_model = PendulumReward(action_cost=params.action_cost)
+        environment = SystemEnvironment(
+            InvertedPendulum(mass=0.001, length=0.5, friction=0.00001, step_size=5 / 80),
+            reward=reward_model,
+            initial_state=initial_distribution.sample,
+            termination_model=large_state_termination,
+        )
+        # %% Define Helper modules
+        action_scale = environment.action_scale
+        transformations = [
+            ActionScaler(scale=action_scale),
+            MeanFunction(DeltaState()),  # AngleWrapper(indexes=[1])
+        ]
+
+        input_transform = StateTransform()
+        exploratory_distribution = torch.distributions.Uniform(
             torch.tensor([-np.pi, -0.005]), torch.tensor([np.pi, +0.005])
         )
-    else: # params.initial_dist == 'bottom':
-        initial_distribution = torch.distributions.Uniform(
-            torch.tensor([np.pi, -0.005]), torch.tensor([np.pi, 0.005])
+
+    else:
+        transformations = input_transform = None
+        env_config = parse_config_file(params["env_config"])
+        environment = GymEnvironment(
+            env_config["name"], ctrl_cost_weight=env_config["action_cost"], seed=params.seed
         )
 
+        exploratory_distribution = explore_obs_torch(environment)
+        reward_model = environment.env.reward_model()
+        action_scale = environment.action_scale
+        env_name = env_config['name']
 
-    reward_model = PendulumReward(action_cost=params.action_cost)
-    environment = SystemEnvironment(
-        InvertedPendulum(mass=0.001, length=0.5, friction=0.00001, step_size=5 / 80),
-        reward=reward_model,
-        initial_state=initial_distribution.sample,
-        termination_model=large_state_termination,
-    )
-
-    action_scale = environment.action_scale
-
-    # %% Define Helper modules
-    transformations = [
-        ActionScaler(scale=action_scale),
-        MeanFunction(DeltaState()),  # AngleWrapper(indexes=[1])
-    ]
-
-    input_transform = StateTransform()
-    exploratory_distribution = torch.distributions.Uniform(
-        torch.tensor([-np.pi, -0.005]), torch.tensor([np.pi, +0.005])
-    )
 
     if agent_name == "mpc":
         agent = get_mpc_agent(
@@ -469,14 +503,12 @@ def get_agent_and_environment(params, agent_name):
             environment.dim_action,
             params,
             reward_model,
+            env_name,
             action_scale=action_scale,
             transformations=transformations,
             input_transform=input_transform,
             termination_model=large_state_termination,
-            initial_distribution=exploratory_distribution,
-            comment=environment.name + args.env_config_file.split('/')[0] + '_' + str(
-                args.train_episodes) + '_' + args.initial_condition,
-
+            initial_distribution=exploratory_distribution
         )
     elif agent_name == "mbmpo":
         agent = get_mb_mpo_agent(
@@ -484,6 +516,7 @@ def get_agent_and_environment(params, agent_name):
             environment.dim_action,
             params,
             reward_model,
+            env_name,
             input_transform=input_transform,
             action_scale=action_scale,
             transformations=transformations,
@@ -523,12 +556,13 @@ def get_mbmpo_parser():
     parser.add_argument("--max-memory", type=int, default=10000)
 
     environment_parser = parser.add_argument_group("environment")
-    environment_parser.add_argument("--action-cost", type=float, default=0.2)
+    environment_parser.add_argument("--action-cost", type=float, default=0.1)
     environment_parser.add_argument("--gamma", type=float, default=0.99)
     environment_parser.add_argument("--environment-max-steps", type=int, default=400)
 
     environment_parser.add_argument("--initial-dist", type=str, default='all')
 
+    parser.add_argument("--env-config", type=str, default='manual_inverted_pendulum')
 
     model_parser = parser.add_argument_group("model")
     model_parser.add_argument(

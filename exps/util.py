@@ -227,6 +227,7 @@ def get_mb_mpo_agent(
     dim_action,
     params,
     reward_model,
+    env_name,
     transformations,
     action_scale,
     input_transform=None,
@@ -278,10 +279,12 @@ def get_mb_mpo_agent(
     )
 
     model_name = dynamical_model.base_model.name
-    comment = f"{model_name} " \
-              f"{params.exploration.capitalize()} " \
-              f"{params.action_cost} " \
-              f"{params.initial_dist}"
+    comment = f"{env_name}-" \
+              f"{model_name}-" \
+              f"{params.exploration.capitalize()}-" \
+              f"{params.action_cost}-" \
+              f"{params.initial_dist}" \
+              f"{params.seed}"
 
     agent = MBMPOAgent(
         policy=policy,
@@ -329,6 +332,7 @@ def get_mpc_agent(
     dim_action,
     params,
     reward_model,
+    env_name,
     transformations,
     action_scale,
     input_transform=None,
@@ -368,7 +372,12 @@ def get_mpc_agent(
 
     # Define Agent
     model_name = dynamical_model.base_model.name
-    comment = f"{model_name} {params.exploration.capitalize()} {params.action_cost}"
+    comment = f"{env_name}-" \
+              f"{model_name}-" \
+              f"{params.exploration.capitalize()}-" \
+              f"{params.action_cost}-" \
+              f"{params.initial_dist}" \
+              f"{params.seed}"
 
     agent = MPCAgent(
         policy,
@@ -465,5 +474,6 @@ def train_and_evaluate(
     metrics.update({"test/test_env_returns": returns})
     returns = np.mean(agent.logger.get("environment_return")[: -params.test_episodes])
     metrics.update({"test/train_env_returns": returns})
+    # agent.logger.end_episode(**{'eval_return': returns})
 
     agent.logger.log_hparams(params.toDict(), metrics)
