@@ -33,8 +33,12 @@ def remove_invalid_sim(data_statistics, statistics, min_epochs=50):
 
 
 def plot_key(data_statistics, statistics, key, out_dir):
-    d_struct = [(d[key], '-'.join(s_names.split('/')[-3:-1]).split('-s')[0:-1][0])
+    try:
+        d_struct = [(d[key], '-'.join(s_names.split('/')[-3:-1]).split('-s')[0:-1][0])
                 for (d, s_names) in zip(data_statistics, statistics) if key in d]
+    except IndexError:
+        d_struct = [(d[key], '-'.join(s_names.split('/')[-3:-1]).split('-all')[0:-1][0])
+                    for (d, s_names) in zip(data_statistics, statistics) if key in d]
 
 
     # d_struct = sorted(d_struct, key=lambda x: x[1])

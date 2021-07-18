@@ -2,7 +2,6 @@
 from dotmap import DotMap
 
 from exps.inverted_pendulum import (
-    ACTION_COST,
     ENVIRONMENT_MAX_STEPS,
     TRAIN_EPISODES,
     get_agent_and_environment,
@@ -36,6 +35,7 @@ if __name__ == "__main__":
     params = DotMap(vars(args))
     agent_name = "mbmpo"
     environment, agent = get_agent_and_environment(params, agent_name)
+    # agent.to('cuda')
 
     set_figure_params(serif=True, fontsize=9)
     train_and_evaluate(

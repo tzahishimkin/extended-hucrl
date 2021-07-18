@@ -116,5 +116,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--render", action="store_true", default=False)
 
+    parser.add_argument("--action-cost", type=float, default=0.1)
+
     parser.add_argument("--beta", type=float, default=1.0)
     main(parser.parse_args())
