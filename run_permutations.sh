@@ -4,11 +4,11 @@
 # optional: -o to print the command without running
 
 # example:
-# bash run_permutations.sh ensemble_exp.py --env-config exps/mujoco/config/envs/half-cheetah.yaml --agent-config exps/mujoco/config/agents/bptt.yaml --seed 1 2 3
+on_linuxs=true# bash run_permutations.sh ensemble_exp.py --env-config exps/mujoco/config/envs/half-cheetah.yaml --agent-config exps/mujoco/config/agents/bptt.yaml --seed 1 2 3
 # bash run_permutations.sh exps/inverted_pendulum/run.py  --env-config exps/mujoco/config/envs/ant.yaml exps/mujoco/config/envs/walker2d.yaml --seed 1 2 3 -o
 # bash run_permutations.sh exps/mujoco/run.py --agent MPC --agent-config-file exps/mujoco/config/agents/mpc.yaml --env-config rllib/examples/config/envs/cart-pole-mujoco.yaml rllib/examples/config/envs/inverted-pendulum.yaml --seed 1 2 3  --exploration optimistic expected thompson
 # bash run_permutations.sh exps/mujoco/run.py --agent-config exps/mujoco/config/agents/bptt.yaml exps/mujoco/config/agents/data_augmentation.yaml --env-config rllib/examples/config/envs/cart-pole-mujoco.yaml rllib/examples/config/envs/inverted-pendulum.yaml --seed 1 2 3  --exploration optimistic expected thompson  --action-cost 0
-on_linuxs=true
+
 simultanious_tasks=false
 cuda_i=0
 python_script="${1}"
@@ -71,7 +71,7 @@ fi
 
 if [ ${on_linuxs} = true ]; then
   for ((i = 0; i < $GPU_AMOUNT; i += 1)); do
-    TS_SOCKET=/tmp/socket-cuda$i tsp -S 4
+    TS_SOCKET=/tmp/socket-cuda$i tsp -S 3
   done
 fi
 

@@ -24,7 +24,7 @@ from hucrl.model.hallucinated_model import HallucinatedModel
 
 
 def _get_model(
-    dim_state, dim_action, params, input_transform=None, transformations=None
+        dim_state, dim_action, params, input_transform=None, transformations=None
 ):
     transformations = list() if not transformations else transformations
 
@@ -100,12 +100,12 @@ def _get_model(
 
 
 def _get_mpc_policy(
-    dynamical_model,
-    reward_model,
-    params,
-    action_scale,
-    terminal_reward=None,
-    termination_model=None,
+        dynamical_model,
+        reward_model,
+        params,
+        action_scale,
+        terminal_reward=None,
+        termination_model=None,
 ):
     if params.mpc_solver == "cem":
         solver = CEMShooting(
@@ -223,16 +223,16 @@ def _get_nn_policy(dim_state, dim_action, params, action_scale, input_transform=
 
 
 def get_mb_mpo_agent(
-    dim_state,
-    dim_action,
-    params,
-    reward_model,
-    env_name,
-    transformations,
-    action_scale,
-    input_transform=None,
-    termination_model=None,
-    initial_distribution=None,
+        dim_state,
+        dim_action,
+        params,
+        reward_model,
+        env_name,
+        transformations,
+        action_scale,
+        input_transform=None,
+        termination_model=None,
+        initial_distribution=None,
 ):
     """Get a MB-MPO agent."""
     # Define Base Model
@@ -260,8 +260,8 @@ def get_mb_mpo_agent(
     )
 
     assert (
-        policy.nn.hidden_layers[0].in_features
-        == value_function.nn.hidden_layers[0].in_features
+            policy.nn.hidden_layers[0].in_features
+            == value_function.nn.hidden_layers[0].in_features
     )
 
     # zero_bias(policy)
@@ -279,12 +279,14 @@ def get_mb_mpo_agent(
     )
 
     model_name = dynamical_model.base_model.name
-    comment = f"{env_name}-" \
-              f"{model_name}-" \
-              f"{params.exploration.capitalize()}-" \
-              f"{params.action_cost}-" \
-              f"{params.initial_dist}" \
-              f"{params.seed}"
+
+    comment = '-'.join((env_name,
+                        params.exploration.capitalize(),
+                        f'ac{params.action_cost}',
+                        f'b{params.beta}',
+                        f'ep{params.train_episodes}',
+                        f's{params.seed}'
+                        ))
 
     agent = MBMPOAgent(
         policy=policy,
@@ -328,16 +330,16 @@ def get_mb_mpo_agent(
 
 
 def get_mpc_agent(
-    dim_state,
-    dim_action,
-    params,
-    reward_model,
-    env_name,
-    transformations,
-    action_scale,
-    input_transform=None,
-    termination_model=None,
-    initial_distribution=None,
+        dim_state,
+        dim_action,
+        params,
+        reward_model,
+        env_name,
+        transformations,
+        action_scale,
+        input_transform=None,
+        termination_model=None,
+        initial_distribution=None,
 ):
     """Get an MPC based agent."""
     # Define Base Model
@@ -372,12 +374,13 @@ def get_mpc_agent(
 
     # Define Agent
     model_name = dynamical_model.base_model.name
-    comment = f"{env_name}-" \
-              f"{model_name}-" \
-              f"{params.exploration.capitalize()}-" \
-              f"{params.action_cost}-" \
-              f"{params.initial_dist}" \
-              f"{params.seed}"
+    comment = '-'.join((env_name,
+                        params.exploration.capitalize(),
+                        f'ac{params.action_cost}',
+                        f'b{params.beta}',
+                        f'ep{params.train_episodes}',
+                        f's{params.seed}'
+                        ))
 
     agent = MPCAgent(
         policy,
@@ -425,8 +428,8 @@ class LargeStateTermination(AbstractModel):
 
         return (
             torch.zeros(*done.shape, 2)
-            .scatter_(dim=-1, index=(~done).long().unsqueeze(-1), value=-float("inf"))
-            .squeeze(-1)
+                .scatter_(dim=-1, index=(~done).long().unsqueeze(-1), value=-float("inf"))
+                .squeeze(-1)
         )
 
 
@@ -438,13 +441,13 @@ def parse_config_file(file_dir):
 
 
 def train_and_evaluate(
-    agent, environment, params, plot_callbacks=None, save_milestones=None
+        agent, environment, params, plot_callbacks=None, save_milestones=None
 ):
     """Train and evaluate agent on environment."""
     # %% Train Agent
     agent.logger.save_hparams(params.toDict())
     with gpytorch.settings.fast_computations(), gpytorch.settings.fast_pred_var(), (
-        gpytorch.settings.fast_pred_samples()
+            gpytorch.settings.fast_pred_samples()
     ), (gpytorch.settings.memory_efficient()):
         train_agent(
             agent,
@@ -470,7 +473,7 @@ def train_and_evaluate(
         render=params.render_test,
     )
 
-    returns = np.mean(agent.logger.get("environment_return")[-params.test_episodes :])
+    returns = np.mean(agent.logger.get("environment_return")[-params.test_episodes:])
     metrics.update({"test/test_env_returns": returns})
     returns = np.mean(agent.logger.get("environment_return")[: -params.test_episodes])
     metrics.update({"test/train_env_returns": returns})

@@ -5,7 +5,7 @@ rllib/examples/config/envs/inverted-pendulum.yaml \
 --agent-config \
 exps/mujoco/config/agents/bptt.yaml \
 exps/mujoco/config/agents/data_augmentation.yaml \
- --seed 1 2 3 \
+ --seed 4 5 6 \
  --exploration optimistic expected thompson \
  --action-cost 0 \
  -o

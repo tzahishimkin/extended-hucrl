@@ -494,7 +494,12 @@ def get_agent_and_environment(params, agent_name):
         exploratory_distribution = explore_obs_torch(environment)
         reward_model = environment.env.reward_model()
         action_scale = environment.action_scale
-        env_name = env_config['name']
+
+        env_version = params["env_config"].split('/')[0]
+        if env_version == 'exp':
+            env_version = 'hucrl'
+        env_name = env_config['name'].replace('-','_') + '_' + env_version
+
 
 
     if agent_name == "mpc":
@@ -550,7 +555,7 @@ def get_mbmpo_parser():
         "--seed", type=int, default=0, help="initial random seed (default: 0)."
     )
     parser.add_argument("--train-episodes", type=int, default=200)
-    parser.add_argument("--test-episodes", type=int, default=1)
+    parser.add_argument("--test-episodes", type=int, default=10)
     parser.add_argument("--num-threads", type=int, default=1)
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--max-memory", type=int, default=10000)

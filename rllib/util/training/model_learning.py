@@ -128,7 +128,7 @@ def train_model(
         Dataset to validate with.
     """
     if logger is None:
-        logger = Logger(f"{model.name}_training", tensorboard=True)
+        logger = Logger(f"{model.name}_training", tensorboard=False)
     if validation_set is None:
         validation_set = train_set
 

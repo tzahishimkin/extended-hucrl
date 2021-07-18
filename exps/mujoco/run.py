@@ -48,6 +48,13 @@ def main(args):
     if env_version == 'exp':
         env_version = 'hucrl'
 
+    comment = '-'.join((environment.name.replace('-','_') + '_' + env_version,
+                        args.exploration,
+                        f'ac{env_config["action_cost"]}',
+                        f'b{args.beta}',
+                        f'ep{args.train_episodes}',
+                        f's{args.seed}'))
+
     agent = getattr(
         importlib.import_module("rllib.agent"), f"{args.agent}Agent"
     ).default(
@@ -55,15 +62,9 @@ def main(args):
         dynamical_model=dynamical_model,
         reward_model=reward_model,
         thompson_sampling=args.exploration == "thompson",
-        tensorboard=True,
-        comment='-'.join((environment.name + '_V' + env_version,
-                          args.exploration,
-                          f'ac{env_config["action_cost"]}',
-                          f'b{args.beta}',
-                          f'ep{args.train_episodes}',
-                          f's{args.seed}'
-                          )),
-                ** kwargs,
+        tensorboard=False,
+        comment=comment,
+        **kwargs,
     )
 
     agent.to(args.device)

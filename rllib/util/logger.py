@@ -40,8 +40,8 @@ class Logger(object):
         self.all = defaultdict(list)
 
         now = datetime.now()
-        current_time = now.strftime("%b%d_%H-%M-%S")
-        comment = comment + "_" + current_time if len(comment) else current_time
+        current_time = now.strftime("%b%d_%H_%M_%S")
+        comment = comment + "-" + current_time if len(comment) else current_time
         log_dir = f"runs/{name}/{comment}"
         if tensorboard:
             self.writer = SummaryWriter(log_dir=log_dir)
