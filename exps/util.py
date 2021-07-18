@@ -473,9 +473,9 @@ def train_and_evaluate(
         render=params.render_test,
     )
 
-    returns = np.mean(agent.logger.get("environment_return")[-params.test_episodes:])
-    metrics.update({"test/test_env_returns": returns})
-    returns = np.mean(agent.logger.get("environment_return")[: -params.test_episodes])
+    returns = np.mean(agent.logger.get("eval_return")[-params.test_episodes:])
+    metrics.update({"test/eval_returns": returns})
+    returns = np.mean(agent.logger.get("train_return")[: -params.test_episodes])
     metrics.update({"test/train_env_returns": returns})
     # agent.logger.end_episode(**{'eval_return': returns})
 

@@ -488,7 +488,7 @@ def get_agent_and_environment(params, agent_name):
         transformations = input_transform = None
         env_config = parse_config_file(params["env_config"])
         environment = GymEnvironment(
-            env_config["name"], ctrl_cost_weight=env_config["action_cost"], seed=params.seed
+            env_config["name"], ctrl_cost_weight=params["action_cost"], seed=params.seed
         )
 
         exploratory_distribution = explore_obs_torch(environment)
@@ -499,7 +499,6 @@ def get_agent_and_environment(params, agent_name):
         if env_version == 'exp':
             env_version = 'hucrl'
         env_name = env_config['name'].replace('-','_') + '_' + env_version
-
 
 
     if agent_name == "mpc":

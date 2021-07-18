@@ -4,7 +4,7 @@
 # optional: -o to print the command without running
 
 # example:
-on_linuxs=true# bash run_permutations.sh ensemble_exp.py --env-config exps/mujoco/config/envs/half-cheetah.yaml --agent-config exps/mujoco/config/agents/bptt.yaml --seed 1 2 3
+on_linuxs=true # bash run_permutations.sh ensemble_exp.py --env-config exps/mujoco/config/envs/half-cheetah.yaml --agent-config exps/mujoco/config/agents/bptt.yaml --seed 1 2 3
 # bash run_permutations.sh exps/inverted_pendulum/run.py  --env-config exps/mujoco/config/envs/ant.yaml exps/mujoco/config/envs/walker2d.yaml --seed 1 2 3 -o
 # bash run_permutations.sh exps/mujoco/run.py --agent MPC --agent-config-file exps/mujoco/config/agents/mpc.yaml --env-config rllib/examples/config/envs/cart-pole-mujoco.yaml rllib/examples/config/envs/inverted-pendulum.yaml --seed 1 2 3  --exploration optimistic expected thompson
 # bash run_permutations.sh exps/mujoco/run.py --agent-config exps/mujoco/config/agents/bptt.yaml exps/mujoco/config/agents/data_augmentation.yaml --env-config rllib/examples/config/envs/cart-pole-mujoco.yaml rllib/examples/config/envs/inverted-pendulum.yaml --seed 1 2 3  --exploration optimistic expected thompson  --action-cost 0

@@ -49,7 +49,7 @@ def evaluate_agent(agent, environment, num_episodes, max_steps, render=True):
             environment,
             agent,
             max_steps=max_steps,
-            num_episodes=10,
+            num_episodes=num_episodes,
             render=render,
         )
         returns = np.mean(agent.logger.get("eval_return")[-num_episodes:])
