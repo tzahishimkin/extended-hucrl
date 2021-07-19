@@ -27,7 +27,8 @@ def to_dict_list(list_dict):
     return dict_list
 
 
-def remove_invalid_sim(data_statistics, statistics, min_epochs=50):
+def remove_invalid_sim(data_statistics, statistics, min_epochs=150):
+    # simulations under min_epochs
     valid_sim = [len(d['rewards']) > min_epochs for d in data_statistics]
     valid_sim = np.where(valid_sim)[0]
     data_statistics = [data_statistics[v] for v in valid_sim]
@@ -36,13 +37,18 @@ def remove_invalid_sim(data_statistics, statistics, min_epochs=50):
 
 
 import matplotlib.cm
+
+
 def get_cmap_string(palette, domain):
     domain_unique = np.unique(domain)
     hash_table = {key: i_str for i_str, key in enumerate(domain_unique)}
     mpl_cmap = matplotlib.cm.get_cmap(palette, lut=len(domain_unique))
+
     def cmap_out(X, **kwargs):
         return mpl_cmap(hash_table[X], **kwargs)
+
     return cmap_out
+
 
 def plot_key(data_statistics, statistics, attribute, out_dir):
     def get_sim_name(s_name):
@@ -53,8 +59,7 @@ def plot_key(data_statistics, statistics, attribute, out_dir):
         return name
 
     d_struct = [(d[attribute], get_sim_name(s_names))
-            for (d, s_names) in zip(data_statistics, statistics) if attribute in d]
-
+                for (d, s_names) in zip(data_statistics, statistics) if attribute in d]
 
     # d_struct = sorted(d_struct, key=lambda x: x[1])
     uniques = np.unique([d[1] for d in d_struct])
@@ -73,12 +78,13 @@ def plot_key(data_statistics, statistics, attribute, out_dir):
             alpha
         )
         return col
+
     figs_list = []
     for key, value in data.items():
         agent, env, exploration, ac, b, ep = key.split('-')
         fig_num = int(hashlib.sha1(env.encode("utf-8")).hexdigest(), 16) % (10 ** 3)
         exp = f'{agent}-{env}-{ac}-{b}'
-        algo = f'{agent}-{exploration}' #key
+        algo = f'{agent}-{exploration}'  # key
 
         color = get_hash_color(algo, 1)
         fig = plt.figure(exp)
@@ -94,7 +100,7 @@ def plot_key(data_statistics, statistics, attribute, out_dir):
         n_stds = 0.3
         for k in np.linspace(0, n_stds, 4):
             plt.fill_between(
-                range(len(std)),(val_median - k * std), (val_median + k * std),
+                range(len(std)), (val_median - k * std), (val_median + k * std),
                 alpha=0.3,
                 edgecolor=None,
                 facecolor=get_hash_color(algo, 0.1),
@@ -106,7 +112,7 @@ def plot_key(data_statistics, statistics, attribute, out_dir):
         fig = plt.figure(fig_name)
         # algo = key #f'{agent}-{exploration}'
         plt.legend()
-        save_name = os.path.join(out_dir, fig_name+'.jpg')
+        save_name = os.path.join(out_dir, fig_name + '.jpg')
         plt.title(fig_name)
         plt.savefig(save_name)
 
@@ -141,6 +147,7 @@ def write_key_value(d, s_names, keys):
     if any_key_valid:
         return p_str
 
+
 def get_new_name(old):
     # AA = old.replace('-v0', '_v0_exps')\
     #     .replace('-Probabilistic Ensemble', '')\
@@ -154,15 +161,18 @@ def get_new_name(old):
     B = old.replace('-v0-', '_v0_')
     return B
 
+
 def dirs_renaming(src_dir, dst_dir):
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))
     statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
     dirs = ['/'.join(s.split('/')[0:-1]) for s in statistics]
-    new_paths = [os.path.join(dst_dir, '/'.join(dir.split('/')[1:-1]), get_new_name(dir.split('/')[-1])) for dir in dirs]
+    new_paths = [os.path.join(dst_dir, '/'.join(dir.split('/')[1:-1]), get_new_name(dir.split('/')[-1])) for dir in
+                 dirs]
     import shutil
     for source, dest in zip(dirs, new_paths):
         # print(f'{source} -> {dest}')
         shutil.move(source, dest)
+
 
 def copy_jsons(src_dir, dst_dir):
     assert src_dir != dst_dir, 'src and dest cannot be the same'
@@ -183,6 +193,14 @@ def copy_jsons(src_dir, dst_dir):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copyfile(src, dst)
 
+
+def get_unique_keys(json_data):
+    ll = [list(stat.keys()) for stat in json_data]
+    ll = [item for sublist in ll for item in sublist]
+    uniq = np.unique(ll)
+    return uniq
+
+
 def main(args):
     src_dir = args.src_dir
     dst_dir = args.dst_dir
@@ -199,12 +217,22 @@ def main(args):
     # arange data
     data_statistics = [load_json(path) for path in statistics]
     data_statistics = [to_dict_list(d) for d in data_statistics]
+    statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
+    alls = [s.replace('statistics', 'all') for s in statistics]
+
+    # # check unique features of statistics and  all
+    # uniq_key_stat = get_unique_keys(data_statistics)
+    # data_alls = [load_json(path) for path in alls]
+    # data_alls = [to_dict_list(d) for d in data_alls]
+    # uniq_key_all = get_unique_keys(data_alls)
+
+    # remove invalid simulations
     data_statistics, statistics = remove_invalid_sim(data_statistics, statistics)
 
     # plot graphs
     [plot_key(data_statistics, statistics, save_key, dst_dir) for save_key in args.save_keys]
 
-    # write last results (averaged ovber 20 iterations)
+    # write last results (averaged over 20 iterations)
     str_list = [write_key_value(d, s_names, args.save_keys) for (d, s_names) in zip(data_statistics, statistics)]
     print(np.sort(str_list))
 
@@ -213,5 +241,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
     parser.add_argument("--src-dir", type=str, default="runs")
     parser.add_argument("--dst-dir", type=str, default=None)
-    parser.add_argument('--save-keys', type=str, nargs='+', default=['train_return', 'sim_return', 'epochs'])
+    parser.add_argument('--keys-to-plot', type=str, nargs='+',
+                        default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
+    parser.add_argument("--figures-split", type=str, nargs='+', )
+    parser.add_argument("--subfigure-split", type=str, nargs='+', )
+
     main(parser.parse_args())
