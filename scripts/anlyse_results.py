@@ -4,6 +4,8 @@ import pathlib
 import json
 import argparse
 import importlib
+import shutil
+
 import scipy.ndimage as ndi
 
 from collections import defaultdict
@@ -162,6 +164,24 @@ def dirs_renaming(src_dir, dst_dir):
         # print(f'{source} -> {dest}')
         shutil.move(source, dest)
 
+def copy_jsons(src_dir, dst_dir):
+    assert src_dir != dst_dir, 'src and dest cannot be the same'
+    assert dst_dir is not None, 'dest cannot be None'
+
+    lists = list(pathlib.Path(src_dir).glob('**/*.json'))
+    statistics_src = [l.as_posix() for l in lists if 'statistics' in l.name]
+    alls_src = [s.replace('statistics', 'all') for s in statistics_src]
+
+    statistics_dst = [s.replace(src_dir, dst_dir, 1) for s in statistics_src]
+    alls_dst = [s.replace('statistics', 'all') for s in statistics_dst]
+
+    for src, dst in zip(statistics_src, statistics_dst):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(src, dst)
+
+    for src, dst in zip(alls_src, alls_dst):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(src, dst)
 
 def main(args):
     src_dir = args.src_dir
@@ -170,6 +190,7 @@ def main(args):
         os.makedirs(dst_dir, exist_ok=True)
 
     # dirs_renaming(src_dir, dst_dir)
+    # copy_jsons(src_dir, dst_dir)
 
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))

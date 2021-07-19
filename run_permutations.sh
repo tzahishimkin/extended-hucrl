@@ -71,7 +71,7 @@ fi
 
 if [ ${on_linuxs} = true ]; then
   for ((i = 0; i < $GPU_AMOUNT; i += 1)); do
-    TS_SOCKET=/tmp/socket-cuda$i tsp -S 3
+    TS_SOCKET=/tmp/socket-cuda$i tsp -S 6
   done
 fi
 

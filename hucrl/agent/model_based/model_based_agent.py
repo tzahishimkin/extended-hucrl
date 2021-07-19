@@ -5,7 +5,6 @@ A model based agent has three behaviors:
 - It optimizes policies with simulated data from the models.
 - It plans with the model and policies (as guiding sampler).
 """
-import contextlib
 from dataclasses import asdict
 
 import gpytorch
@@ -26,6 +25,27 @@ from rllib.util.training.model_learning import train_model
 from rllib.util.utilities import tensor_to_distribution
 from rllib.util.value_estimation import mb_return
 from tqdm import tqdm
+
+from contextlib import AbstractContextManager
+class nullcontext(AbstractContextManager):
+    """Context manager that does no additional processing.
+
+    Used as a stand-in for a normal context manager, when a particular
+    block of code is only sometimes used with a normal context manager:
+
+    cm = optional_cm if condition else nullcontext()
+    with cm:
+        # Perform operation, using optional_cm if condition is True
+    """
+
+    def __init__(self, enter_result=None):
+        self.enter_result = enter_result
+
+    def __enter__(self):
+        return self.enter_result
+
+    def __exit__(self, *excinfo):
+        pass
 
 
 class ModelBasedAgent(AbstractAgent):
@@ -489,7 +509,7 @@ class ModelBasedAgent(AbstractAgent):
                 return losses
 
             if self.train_steps % self.policy_update_frequency == 0:
-                cm = contextlib.nullcontext()
+                cm = nullcontext()
             else:
                 cm = DisableGradient(self.policy)
 

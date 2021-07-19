@@ -1,7 +1,8 @@
 bash run_permutations.sh exps/mujoco/run.py \
 --env-config \
-rllib/examples/config/envs/cart-pole-mujoco.yaml \
 rllib/examples/config/envs/inverted-pendulum.yaml \
+exps/mujoco/config/envs/ant.yaml \
+exps/mujoco/config/envs/walker2d.yaml \
 --agent-config \
 exps/mujoco/config/agents/bptt.yaml \
 exps/mujoco/config/agents/data_augmentation.yaml \
@@ -15,5 +16,5 @@ SAC \
 --env-config \
 rllib/examples/config/envs/cart-pole-mujoco.yaml \
 rllib/examples/config/envs/inverted-pendulum.yaml \
- --seed 1 2 3 \
- -o
+ --seed 4 5 6 \
+
