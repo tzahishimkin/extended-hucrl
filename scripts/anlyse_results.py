@@ -201,6 +201,29 @@ def get_unique_keys(json_data):
     return uniq
 
 
+def create_hparam_file(src_dir):
+    lists = list(pathlib.Path(src_dir).glob('**/*.json'))
+    statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
+    hparams_paths = [s.replace('statistics', 'hparams') for s in statistics]
+    for hparams_path in hparams_paths:
+        if not os.path.exists(hparams_path):
+            _, agent, model, _ = hparams_path.split('/')[-4:]
+            try:
+                env, exploration, action_cost, beta, train_episode, seed, date = model.split('-')
+            except ValueError:
+                env, exploration, action_cost, beta, train_episode, seed, date,_ = model.split('-')
+
+            action_cost = float(action_cost.replace('ac',''))
+            beta = float(beta.replace('b', ''))
+            train_episode = float(train_episode.replace('ep', ''))
+            seed = float(seed.replace('s', ''))
+            params = {'agent':agent,'env':env, 'exploration':exploration, 'action_cost':action_cost,
+                      'beta':beta, 'train_episode':train_episode, 'seed':seed}
+
+            with open(hparams_path, "w") as f:
+                json.dump(params, f)
+
+
 def main(args):
     src_dir = args.src_dir
     dst_dir = args.dst_dir
@@ -209,7 +232,7 @@ def main(args):
 
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
-
+    # create_hparam_file(src_dir)
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))
     statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
