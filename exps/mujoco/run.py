@@ -4,6 +4,7 @@ import argparse
 import importlib
 
 import torch
+from dotmap import DotMap
 
 torch.set_default_dtype(torch.float32)
 # torch.set_default_tensor_type(torch.float32)
@@ -67,6 +68,8 @@ def main(args):
         **kwargs,
     )
 
+    agent.logger.save_hparams(DotMap(vars(args)).toDict())
+
     agent.to(args.device)
     # agent.policy.to(torch.float32)
 
@@ -88,6 +91,7 @@ def main(args):
     )
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
     parser.add_argument(
@@ -96,17 +100,11 @@ if __name__ == "__main__":
         default="BPTT",
         choices=["BPTT", "MVE", "DataAugmentation", "MPC", "MBMPO", 'SAC'],
     )
-    parser.add_argument("--agent-config-file", type=str, default="config/agents/bptt.yaml")
-    parser.add_argument(
-        "--env-config-file", type=str, default="config/envs/half-cheetah.yaml"
-    )
+    parser.add_argument("--agent-config-file", type=str, default="exps/mujoco/config/agents/bptt.yaml")
+    parser.add_argument("--env-config-file", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
 
-    parser.add_argument(
-        "--exploration",
-        type=str,
-        default="optimistic",
-        choices=["optimistic", "expected", "thompson"],
-    )
+    parser.add_argument("--exploration", type=str, default="optimistic",
+        choices=["optimistic", "expected", "thompson"])
 
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--train-episodes", type=int, default=250)

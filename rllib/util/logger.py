@@ -9,6 +9,17 @@ import numpy as np
 import torch
 from tensorboardX import SummaryWriter
 
+from enum import Enum
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, type):
+            return {'$class': o.__module__ + "." + o.__name__}
+        elif isinstance(o, Enum):
+            return {'$enum': o.__module__ + "." + o.__class__.__name__ + '.' + o.name}
+        return json.JSONEncoder.default(self, o)
+
 
 def safe_make_dir(dir_name):
     """Create a new directory safely."""
@@ -18,6 +29,7 @@ def safe_make_dir(dir_name):
         now = datetime.now()
         dir_name = safe_make_dir(dir_name + f"-{now.microsecond}")
     return dir_name
+
 
 
 class Logger(object):
@@ -211,3 +223,12 @@ class Logger(object):
             self.load_from_json()  # If json files in log_dir, then load them.
         except FileNotFoundError:
             pass
+
+    def save_params(self, args, log_file='params.json'):
+        log_params = {}
+        for param_name, param_value in args.__dict__.items():
+            log_params[param_name] = param_value
+
+        log_path = os.path.join(self.log_dir, log_file)
+        with open(log_path, "w") as f:
+            json.dump(log_params, f, indent=2, sort_keys=True, cls=MyEncoder)
