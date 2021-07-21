@@ -38,9 +38,9 @@ def to_dict_list(list_dict):
     return dict_list
 
 
-def get_valid_simulations_indxes(data_statistics, min_epochs=200):
+def get_valid_simulations_indxes(data_statistics, min_epochs=250):
     # simulations under min_epochs
-    valid_idxs = [len(d['rewards']) > min_epochs for d in data_statistics]
+    valid_idxs = [len(d['rewards']) >= min_epochs for d in data_statistics]
     valid_idxs = np.where(valid_idxs)[0]
     return valid_idxs
 
@@ -66,40 +66,49 @@ def split_dict_indx_by_unique_key_list(data_dict, keys_list):
         dict_split_ixds.setdefault(key, []).append(ii)
     return dict_split_ixds
 
-    d_struct = [(d[attribute], get_sim_name(s_names))
-                for (d, s_names) in zip(data_statistics, statistics) if attribute in d]
+
+def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **kwargs):
+    # d_struct = [(d[attribute], hparam)
+    #             for (d, hparam) in zip(data_statistics, hparams) if attribute in d]
 
     # d_struct = sorted(d_struct, key=lambda x: x[1])
-    uniques = np.unique([d[1] for d in d_struct])
-    data = {unique: [d[0] for d in d_struct if d[1] == unique] for unique in uniques}
+    # uniques = np.unique([d[1]['env'] for d in d_struct])
+    # data = {unique: [d for d in d_struct if d[1]['env'] == unique] for unique in uniques}
 
-    if out_dir is None:
-        out_dir = os.path.join(statistics[0].split('/')[0], 'figures')
-    out_dir = os.path.join(out_dir, attribute)
+    if dst_dir is None:
+        dst_dir = os.path.join(statistics_files[0].split('/')[0], 'figures')
+    out_dir = os.path.join(dst_dir, attribute)
     os.makedirs(out_dir, exist_ok=True)
 
-    def get_hash_color(st, alpha):
-        col = (
-            int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (200) / 200,
-            int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (545) / 545,
-            int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (1010) / 1010,
-            alpha
-        )
-        return col
-
     figs_list = []
-    for key, value in data.items():
-        agent, env, exploration, ac, b, ep = key.split('-')
-        fig_num = int(hashlib.sha1(env.encode("utf-8")).hexdigest(), 16) % (10 ** 3)
-        exp = f'{agent}-{env}-{ac}-{b}'
-        algo = f'{agent}-{exploration}'  # key
+    datas = {}
+    for (data_statistic, statistics_file, hparam) in zip(data_statistics, statistics_files, hparams):
+        # statistics_file
+        exp = f"{hparam['env']}-ac{hparam['action_cost']}-b{hparam['beta']}"
+        algo = f"{hparam['agent']}-{hparam['exploration']}"  # key
+        try:
+            datas.setdefault(f"{exp}--{algo}", []).append(data_statistic[attribute])
+        except BaseException:
+            continue
 
+    for expalgo, data in datas.items():
+        if data == []:
+            continue
+
+        exp, algo, = expalgo.split('--')
+        # fig_num = int(hashlib.sha1(env.encode("utf-8")).hexdigest(), 16) % (10 ** 3)
+        # exp = f"{hparam['env']}-ac{hparam['action_cost']}-b{hparam['beta']}"
+        # algo = f"{hparam['agent']}-{hparam['exploration']}"  # key
+        min_length = min([len(d) for d in data])
+        data = [d[:min_length] for d in data]
+
+        value = np.array(data)
         color = get_hash_color(algo, 1)
         fig = plt.figure(exp)
         figs_list.append(exp)
         val_median = np.median(value, axis=0)
         val_median = ndi.gaussian_filter(val_median, sigma=10)
-        plt.plot(val_median, label=algo, color=color)
+        plt.plot(range(len(val_median)), val_median, label=algo, color=color)
 
         val_std = np.std(value, axis=0)
         std = np.minimum(val_std, 1e2)  # for visualization
@@ -242,7 +251,7 @@ def add_fields_in_hparam_file(src_dir):
 
         if 'agent' not in data:
             print(hparams_path)
-            agent = [fl for fl in hparams_path.as_posix().split('/') if 'Agent'  in fl][0]
+            agent = [fl for fl in hparams_path.as_posix().split('/') if 'Agent' in fl][0]
             data['agent'] = agent
             with open(hparams_path, "w") as f:
                 json.dump(data, f)
@@ -266,7 +275,7 @@ def main(args):
 
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
-    # create_hparam_file(src_dir)
+    create_hparam_file(src_dir)
     # add_fields_in_hparam_file(src_dir)
 
     # fetch data
@@ -297,11 +306,13 @@ def main(args):
     hparams = [load_json(h_file) for h_file in hparams_files]
 
     # plot graphs
-    [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir, **args.__dict__)
+
+    [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir=dst_dir)  # , **args.__dict__)
      for save_key in args.keys_to_plot]
 
     # write last results (averaged over 20 iterations)
-    str_list = [write_key_value(d, s_names, args.save_keys) for (d, s_names) in zip(data_statistics, statistics_files)]
+    str_list = [write_key_value(d, s_names, args.keys_to_plot)
+                for (d, s_names) in zip(data_statistics, statistics_files)]
     print(np.sort(str_list))
 
 

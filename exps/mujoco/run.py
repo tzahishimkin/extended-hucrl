@@ -19,10 +19,19 @@ from hucrl.environment.hallucination_wrapper import HallucinationWrapper
 from hucrl.model.hallucinated_model import HallucinatedModel
 
 
+def set_agent(args):
+    file_name = args.agent_config.split('/')[-1].split('.')[0]
+    if file_name == 'data_augmentation':
+        args.agent = 'DataAugmentation'
+    else:
+        args.agent = ''.join([l.capitalize() for l in file_name])
+
+
 def main(args):
     """Run experiment."""
     set_random_seed(args.seed)
     env_config = parse_config_file(args.env_config)
+    set_agent(args)
 
     # _, environment = init_experiment(args)
 
@@ -96,12 +105,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
-    parser.add_argument(
-        "--agent",
-        type=str,
-        default="BPTT",
-        choices=["BPTT", "MVE", "DataAugmentation", "MPC", "MBMPO", 'SAC'],
-    )
+    # parser.add_argument(
+    #     "--agent",
+    #     type=str,
+    #     default="BPTT",
+    #     choices=["BPTT", "MVE", "DataAugmentation", "MPC", "MBMPO", 'SAC'],
+    # )
     parser.add_argument("--agent-config", type=str, default="exps/mujoco/config/agents/bptt.yaml")
     parser.add_argument("--env-config", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
 
