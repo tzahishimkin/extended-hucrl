@@ -219,14 +219,14 @@ def create_hparam_file(src_dir):
             try:
                 env, exploration, action_cost, beta, train_episode, seed, date = model.split('-')
             except ValueError:
-                env, exploration, action_cost, beta, train_episode, seed, date,_ = model.split('-')
+                env, exploration, action_cost, beta, train_episode, seed, date, _ = model.split('-')
 
-            action_cost = float(action_cost.replace('ac',''))
+            action_cost = float(action_cost.replace('ac', ''))
             beta = float(beta.replace('b', ''))
             train_episode = float(train_episode.replace('ep', ''))
             seed = float(seed.replace('s', ''))
-            params = {'agent':agent,'env':env, 'exploration':exploration, 'action_cost':action_cost,
-                      'beta':beta, 'train_episode':train_episode, 'seed':seed}
+            params = {'agent': agent, 'env': env, 'exploration': exploration, 'action_cost': action_cost,
+                      'beta': beta, 'train_episode': train_episode, 'seed': seed}
 
             with open(hparams_path, "w") as f:
                 json.dump(params, f)
