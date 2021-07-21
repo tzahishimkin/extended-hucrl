@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     params = DotMap(vars(args))
-    agent_name = "mbmpo"
-    environment, agent = get_agent_and_environment(params, agent_name)
+
+    environment, agent = get_agent_and_environment(params)
     # agent.to('cuda')
 
     set_figure_params(serif=True, fontsize=9)

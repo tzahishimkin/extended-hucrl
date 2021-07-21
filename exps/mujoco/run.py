@@ -22,7 +22,7 @@ from hucrl.model.hallucinated_model import HallucinatedModel
 def main(args):
     """Run experiment."""
     set_random_seed(args.seed)
-    env_config = parse_config_file(args.env_config_file)
+    env_config = parse_config_file(args.env_config)
 
     # _, environment = init_experiment(args)
 
@@ -38,18 +38,19 @@ def main(args):
         environment.add_wrapper(HallucinationWrapper)
     else:
         dynamical_model = TransformedModel.default(environment)
-    kwargs = parse_config_file(args.agent_config_file)
+    kwargs = parse_config_file(args.agent_config)
 
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     kwargs['device'] = args.device
 
     dynamical_model = dynamical_model.to(args.device)
 
-    env_version = args.env_config_file.split('/')[0]
+    env_version = args.env_config.split('/')[0]
     if env_version == 'exp':
         env_version = 'hucrl'
 
-    comment = '-'.join((environment.name.replace('-','_') + '_' + env_version,
+    env_name = environment.name.replace('-','_') + '_' + env_version
+    comment = '-'.join((env_name,
                         args.exploration,
                         f'ac{env_config["action_cost"]}',
                         f'b{args.beta}',
@@ -68,6 +69,7 @@ def main(args):
         **kwargs,
     )
 
+    args.env = env_name
     agent.logger.save_hparams(DotMap(vars(args)).toDict())
 
     agent.to(args.device)
@@ -100,8 +102,8 @@ if __name__ == "__main__":
         default="BPTT",
         choices=["BPTT", "MVE", "DataAugmentation", "MPC", "MBMPO", 'SAC'],
     )
-    parser.add_argument("--agent-config-file", type=str, default="exps/mujoco/config/agents/bptt.yaml")
-    parser.add_argument("--env-config-file", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
+    parser.add_argument("--agent-config", type=str, default="exps/mujoco/config/agents/bptt.yaml")
+    parser.add_argument("--env-config", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
 
     parser.add_argument("--exploration", type=str, default="optimistic",
         choices=["optimistic", "expected", "thompson"])

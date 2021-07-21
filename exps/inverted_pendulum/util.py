@@ -447,12 +447,13 @@ def solve_mpo(
     return model_rewards
 
 
-def get_agent_and_environment(params, agent_name):
+def get_agent_and_environment(params):
     """Get experiment agent and environment."""
     torch.manual_seed(params.seed)
     np.random.seed(params.seed)
     torch.set_num_threads(params.num_threads)
 
+    agent_name = params.agent
 
     if params['env_config'] == 'manual_inverted_pendulum':
         # %% Define Environment.
@@ -501,7 +502,7 @@ def get_agent_and_environment(params, agent_name):
         env_name = env_config['name'].replace('-','_') + '_' + env_version
 
 
-    if agent_name == "mpc":
+    if agent_name == "MPCAgent":
         agent = get_mpc_agent(
             environment.dim_state,
             environment.dim_action,
@@ -514,7 +515,7 @@ def get_agent_and_environment(params, agent_name):
             termination_model=large_state_termination,
             initial_distribution=exploratory_distribution
         )
-    elif agent_name == "mbmpo":
+    elif agent_name == "MBMPOAgent":
         agent = get_mb_mpo_agent(
             environment.dim_state,
             environment.dim_action,
@@ -566,7 +567,9 @@ def get_mbmpo_parser():
 
     environment_parser.add_argument("--initial-dist", type=str, default='all')
 
+
     parser.add_argument("--env-config", type=str, default='manual_inverted_pendulum')
+    parser.add_argument("--agent", type=str, default='MBMPOAgent') #MPCAgent
 
     model_parser = parser.add_argument_group("model")
     model_parser.add_argument(

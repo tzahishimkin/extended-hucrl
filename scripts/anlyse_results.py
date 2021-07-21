@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import os
 import pathlib
 import json
@@ -15,6 +16,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+def get_hash_color(st, alpha):
+    col = (
+        int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (200) / 200,
+        int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (545) / 545,
+        int(hashlib.sha1(st.encode("utf-8")).hexdigest(), 16) % (1010) / 1010,
+        alpha
+    )
+    return col
+
+
 def load_json(path):
     with open(path) as f:
         data = json.load(f)
@@ -27,13 +38,11 @@ def to_dict_list(list_dict):
     return dict_list
 
 
-def remove_invalid_sim(data_statistics, statistics, min_epochs=150):
+def get_valid_simulations_indxes(data_statistics, min_epochs=200):
     # simulations under min_epochs
-    valid_sim = [len(d['rewards']) > min_epochs for d in data_statistics]
-    valid_sim = np.where(valid_sim)[0]
-    data_statistics = [data_statistics[v] for v in valid_sim]
-    statistics = [statistics[v] for v in valid_sim]
-    return data_statistics, statistics
+    valid_idxs = [len(d['rewards']) > min_epochs for d in data_statistics]
+    valid_idxs = np.where(valid_idxs)[0]
+    return valid_idxs
 
 
 import matplotlib.cm
@@ -50,13 +59,12 @@ def get_cmap_string(palette, domain):
     return cmap_out
 
 
-def plot_key(data_statistics, statistics, attribute, out_dir):
-    def get_sim_name(s_name):
-        try:
-            name = '-'.join(s_name.split('/')[-3:-1]).split('-s')[0:-1][0]
-        except IndexError:
-            name = '-'.join(s_name.split('/')[-3:-1]).split('-all')[0:-1][0]
-        return name
+def split_dict_indx_by_unique_key_list(data_dict, keys_list):
+    dict_split_ixds = {}
+    for ii, h_param in enumerate(data_dict):
+        key = '-'.join([str(h_param[fs]) for fs in keys_list])
+        dict_split_ixds.setdefault(key, []).append(ii)
+    return dict_split_ixds
 
     d_struct = [(d[attribute], get_sim_name(s_names))
                 for (d, s_names) in zip(data_statistics, statistics) if attribute in d]
@@ -224,6 +232,32 @@ def create_hparam_file(src_dir):
                 json.dump(params, f)
 
 
+def add_fields_in_hparam_file(src_dir):
+    hparams_paths = list(pathlib.Path(src_dir).glob('**/hparams.json'))
+    envs, envs_not = [], []
+    for hparams_path in hparams_paths:
+        data = load_json(hparams_path)
+        # if 'agent' in data:
+        #     envs.append(data['agent'])
+
+        if 'agent' not in data:
+            print(hparams_path)
+            agent = [fl for fl in hparams_path.as_posix().split('/') if 'Agent'  in fl][0]
+            data['agent'] = agent
+            with open(hparams_path, "w") as f:
+                json.dump(data, f)
+
+        if 'env' not in data:
+            env = hparams_path.as_posix().split('/')[-2].split('-')[0]
+            envs_not.append(env)
+            data['env'] = env
+            with open(hparams_path, "w") as f:
+                json.dump(data, f)
+
+        envs = np.unique(envs)
+        envs_not = np.unique(envs_not)
+
+
 def main(args):
     src_dir = args.src_dir
     dst_dir = args.dst_dir
@@ -233,15 +267,18 @@ def main(args):
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
     # create_hparam_file(src_dir)
+    # add_fields_in_hparam_file(src_dir)
+
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))
-    statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
+    statistics_files = [l.as_posix() for l in lists if 'statistics' in l.name]
 
     # arange data
-    data_statistics = [load_json(path) for path in statistics]
+    data_statistics = [load_json(path) for path in statistics_files]
     data_statistics = [to_dict_list(d) for d in data_statistics]
-    statistics = [l.as_posix() for l in lists if 'statistics' in l.name]
-    alls = [s.replace('statistics', 'all') for s in statistics]
+    statistics_files = [l.as_posix() for l in lists if 'statistics' in l.name]
+    hparams_files = [s.replace('statistics', 'hparams') for s in statistics_files]
+    alls = [s.replace('statistics', 'all') for s in statistics_files]
 
     # # check unique features of statistics and  all
     # uniq_key_stat = get_unique_keys(data_statistics)
@@ -250,13 +287,21 @@ def main(args):
     # uniq_key_all = get_unique_keys(data_alls)
 
     # remove invalid simulations
-    data_statistics, statistics = remove_invalid_sim(data_statistics, statistics)
+    valid_sim_inds = get_valid_simulations_indxes(data_statistics)
+    data_statistics = [data_statistics[v] for v in valid_sim_inds]
+    statistics_files = [statistics_files[v] for v in valid_sim_inds]
+    hparams_files = [hparams_files[v] for v in valid_sim_inds]
+
+    for h_file in hparams_files:
+        assert os.path.isfile(h_file), f'hfile does not exist for {h_file}'
+    hparams = [load_json(h_file) for h_file in hparams_files]
 
     # plot graphs
-    [plot_key(data_statistics, statistics, save_key, dst_dir) for save_key in args.save_keys]
+    [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir, **args.__dict__)
+     for save_key in args.keys_to_plot]
 
     # write last results (averaged over 20 iterations)
-    str_list = [write_key_value(d, s_names, args.save_keys) for (d, s_names) in zip(data_statistics, statistics)]
+    str_list = [write_key_value(d, s_names, args.save_keys) for (d, s_names) in zip(data_statistics, statistics_files)]
     print(np.sort(str_list))
 
 
@@ -266,7 +311,7 @@ if __name__ == "__main__":
     parser.add_argument("--dst-dir", type=str, default=None)
     parser.add_argument('--keys-to-plot', type=str, nargs='+',
                         default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
-    parser.add_argument("--figures-split", type=str, nargs='+', )
-    parser.add_argument("--subfigure-split", type=str, nargs='+', )
+    parser.add_argument("--figures-split", type=str, nargs='+', default=['env'])
+    parser.add_argument("--subfigure-split", type=str, nargs='+', default=['action_cost'])
 
     main(parser.parse_args())
