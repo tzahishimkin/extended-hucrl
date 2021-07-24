@@ -285,6 +285,7 @@ def fix_hparams_files(src_dir):
 
 def main(args):
     src_dir = args.src_dir
+
     dst_dir = args.dst_dir
     if dst_dir is not None:
         os.makedirs(dst_dir, exist_ok=True)
@@ -296,6 +297,7 @@ def main(args):
 
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))
+    assert lists != [], 'file list is empty. check src_dir'
     statistics_files = [l.as_posix() for l in lists if 'statistics' in l.name]
 
     # arange data
