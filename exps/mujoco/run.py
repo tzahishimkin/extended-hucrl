@@ -58,7 +58,7 @@ def main(args):
     if env_version == 'exp':
         env_version = 'hucrl'
 
-    env_name = environment.name.replace('-','_') + '_' + env_version
+    env_name = environment.name.replace('-', '_') + '_' + env_version
     comment = '-'.join((env_name,
                         args.exploration,
                         f'ac{env_config["action_cost"]}',
@@ -77,7 +77,12 @@ def main(args):
         comment=comment,
         **kwargs,
     )
-
+    args.exp_name = \
+        '-'.join([
+            args.agent,
+            args.exploration,
+            f'b{args.beta}'
+        ])
     args.env = env_name
     agent.logger.save_hparams(DotMap(vars(args)).toDict())
 
@@ -102,7 +107,6 @@ def main(args):
     )
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
     # parser.add_argument(
@@ -115,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument("--env-config", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
 
     parser.add_argument("--exploration", type=str, default="optimistic",
-        choices=["optimistic", "expected", "thompson"])
+                        choices=["optimistic", "expected", "thompson"])
 
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--train-episodes", type=int, default=250)

@@ -502,7 +502,7 @@ def get_agent_and_environment(params):
         env_name = env_config['name'].replace('-','_') + '_' + env_version
 
 
-    if agent_name == "MPCAgent":
+    if agent_name == "MPC":
         agent = get_mpc_agent(
             environment.dim_state,
             environment.dim_action,
@@ -515,7 +515,7 @@ def get_agent_and_environment(params):
             termination_model=large_state_termination,
             initial_distribution=exploratory_distribution
         )
-    elif agent_name == "MBMPOAgent":
+    elif agent_name == "MBMPO":
         agent = get_mb_mpo_agent(
             environment.dim_state,
             environment.dim_action,
@@ -569,7 +569,7 @@ def get_mbmpo_parser():
 
 
     parser.add_argument("--env-config", type=str, default='manual_inverted_pendulum')
-    parser.add_argument("--agent", type=str, default='MBMPOAgent') #MPCAgent
+    parser.add_argument("--agent", type=str, default='MBMPO') #MPC
 
     model_parser = parser.add_argument_group("model")
     model_parser.add_argument(

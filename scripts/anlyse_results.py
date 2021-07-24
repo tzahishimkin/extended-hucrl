@@ -14,6 +14,7 @@ from itertools import chain
 
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib.cm
 
 
 def get_hash_color(st, alpha):
@@ -43,9 +44,6 @@ def get_valid_simulations_indxes(data_statistics, min_epochs=250):
     valid_idxs = [len(d['rewards']) >= min_epochs for d in data_statistics]
     valid_idxs = np.where(valid_idxs)[0]
     return valid_idxs
-
-
-import matplotlib.cm
 
 
 def get_cmap_string(palette, domain):
@@ -241,30 +239,48 @@ def create_hparam_file(src_dir):
                 json.dump(params, f)
 
 
-def add_fields_in_hparam_file(src_dir):
+def fix_hparams_files(src_dir):
     hparams_paths = list(pathlib.Path(src_dir).glob('**/hparams.json'))
+    udpate = False
     envs, envs_not = [], []
     for hparams_path in hparams_paths:
         data = load_json(hparams_path)
-        # if 'agent' in data:
-        #     envs.append(data['agent'])
+
+        if 'agent' in data and 'Agent' in data['agent']:
+            data['agent'] = data['agent'].replace('Agent', '')
+            udpate = True
 
         if 'agent' not in data:
-            print(hparams_path)
+            # print(hparams_path)
             agent = [fl for fl in hparams_path.as_posix().split('/') if 'Agent' in fl][0]
             data['agent'] = agent
-            with open(hparams_path, "w") as f:
-                json.dump(data, f)
-
+            udpate = True
         if 'env' not in data:
             env = hparams_path.as_posix().split('/')[-2].split('-')[0]
             envs_not.append(env)
             data['env'] = env
+            udpate = True
+        if 'exp_name' not in data:
+            # print(hparams_path)
+            # agent = [fl for fl in hparams_path.as_posix().split('/') if 'Agent' in fl][0]
+            data['exp_name'] = \
+                '-'.join([
+                    data['agent'],
+                    data['exploration'],
+                    f"b{data['beta']}"
+                ])
+            udpate = True
+
+        if 'env_ac' not in data:
+            data['env_ac'] = f"{data['env']}-ac{data['action_cost']}"
+            udpate = True
+
+        if udpate:
             with open(hparams_path, "w") as f:
                 json.dump(data, f)
 
-        envs = np.unique(envs)
-        envs_not = np.unique(envs_not)
+        # envs = np.unique(envs)
+        # envs_not = np.unique(envs_not)
 
 
 def main(args):
@@ -276,7 +292,7 @@ def main(args):
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
     create_hparam_file(src_dir)
-    # add_fields_in_hparam_file(src_dir)
+    fix_hparams_files(src_dir)
 
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))

@@ -395,6 +395,8 @@ def index():
         plot_key = "AverageReturn"
     elif "eval_reward" in plottable_keys:
         plot_key = "eval_reward"
+    elif "train_return" in plottable_keys:
+        plot_key = "train_return"
     elif len(plottable_keys) > 0:
         plot_key = plottable_keys[0]
     else:
@@ -409,7 +411,7 @@ def index():
         if does_key_exist(distinct_params, key='policy'):
             group_key = 'policy'
         else:
-            group_key = distinct_params[0][0]
+            group_key = None #distinct_params[0][0]
         if does_key_exist(distinct_params, key='env'):
             split_key = 'env'
 

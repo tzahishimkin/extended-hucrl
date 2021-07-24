@@ -32,6 +32,13 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.exp_name = \
+        '-'.join([
+            args.agent,
+            args.exploration,
+            f'b{args.beta}'
+        ])
+
     params = DotMap(vars(args))
 
     environment, agent = get_agent_and_environment(params)
