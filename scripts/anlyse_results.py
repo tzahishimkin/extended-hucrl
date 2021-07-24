@@ -14,6 +14,7 @@ from itertools import chain
 
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib.cm
 
 
 def get_hash_color(st, alpha):
@@ -43,9 +44,6 @@ def get_valid_simulations_indxes(data_statistics, min_epochs=250):
     valid_idxs = [len(d['rewards']) >= min_epochs for d in data_statistics]
     valid_idxs = np.where(valid_idxs)[0]
     return valid_idxs
-
-
-import matplotlib.cm
 
 
 def get_cmap_string(palette, domain):
@@ -269,6 +267,7 @@ def add_fields_in_hparam_file(src_dir):
 
 def main(args):
     src_dir = args.src_dir
+
     dst_dir = args.dst_dir
     if dst_dir is not None:
         os.makedirs(dst_dir, exist_ok=True)
@@ -280,6 +279,7 @@ def main(args):
 
     # fetch data
     lists = list(pathlib.Path(src_dir).glob('**/*.json'))
+    assert lists != [], 'file list is empty. check src_dir'
     statistics_files = [l.as_posix() for l in lists if 'statistics' in l.name]
 
     # arange data
