@@ -14,7 +14,7 @@ from rllib.model import TransformedModel
 from rllib.util import set_random_seed
 from rllib.util.training.agent_training import evaluate_agent, train_agent
 
-from exps.util import parse_config_file
+from exps.util import load_yaml
 from hucrl.environment.hallucination_wrapper import HallucinationWrapper
 from hucrl.model.hallucinated_model import HallucinatedModel
 
@@ -30,11 +30,11 @@ def set_agent(args):
 def main(args):
     """Run experiment."""
     set_random_seed(args.seed)
-    env_config = parse_config_file(args.env_config)
+    env_config = load_yaml(args.env_config)
     set_agent(args)
 
     # _, environment = init_experiment(args)
-
+    assert False, 'fix this thing with the action cost'
     env_config["action_cost"] = env_config.get("action_cost", 0)
     environment = GymEnvironment(
         env_config["name"], ctrl_cost_weight=env_config["action_cost"], seed=args.seed
@@ -42,12 +42,11 @@ def main(args):
     reward_model = environment.env.reward_model()
 
     if args.exploration == "optimistic":
-
         dynamical_model = HallucinatedModel.default(environment, beta=args.beta)
         environment.add_wrapper(HallucinationWrapper)
     else:
         dynamical_model = TransformedModel.default(environment)
-    kwargs = parse_config_file(args.agent_config)
+    kwargs = load_yaml(args.agent_config)
 
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     kwargs['device'] = args.device

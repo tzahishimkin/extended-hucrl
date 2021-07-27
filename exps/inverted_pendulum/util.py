@@ -33,7 +33,7 @@ from exps.inverted_pendulum.plotters import (
 from exps.util import get_mb_mpo_agent, get_mpc_agent
 from hucrl.algorithms.mbmpo import MBMPO
 from hucrl.environment.hallucination_wrapper import HallucinationWrapper
-from exps.util import parse_config_file
+from exps.util import load_yaml
 
 
 class explore_obs_torch():
@@ -487,7 +487,7 @@ def get_agent_and_environment(params):
 
     else:
         transformations = input_transform = None
-        env_config = parse_config_file(params["env_config"])
+        env_config = load_yaml(params["env_config"])
         environment = GymEnvironment(
             env_config["name"], ctrl_cost_weight=params["action_cost"], seed=params.seed
         )

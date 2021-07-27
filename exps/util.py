@@ -433,11 +433,11 @@ class LargeStateTermination(AbstractModel):
         )
 
 
-def parse_config_file(file_dir):
+def load_yaml(src_path):
     """Parse configuration file."""
-    with open(file_dir, "r") as file:
-        args = yaml.safe_load(file)
-    return args
+    with open(src_path, "r") as file:
+        data = yaml.safe_load(file)
+    return data
 
 
 def train_and_evaluate(
