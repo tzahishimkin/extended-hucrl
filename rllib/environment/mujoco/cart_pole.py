@@ -40,7 +40,10 @@ class CartPoleReward(StateActionReward):
     def _get_ee_pos(self, x0, theta):
         sin, cos = torch.sin(theta), torch.cos(theta)
         return torch.stack(
-            [x0 - self.pendulum_length * sin, -self.pendulum_length * (1 + cos)], -1
+            [- self.pendulum_length * (1 + cos)], -1
+            # [x0 - self.pendulum_length * sin, -self.pendulum_length * (1 + cos)], -1
+            # [x0], -1
+            # [-self.pendulum_length * (1 + cos)],-1
         )
 
 

@@ -34,10 +34,16 @@ def main(args):
     set_agent(args)
 
     # _, environment = init_experiment(args)
-    assert False, 'fix this thing with the action cost'
-    env_config["action_cost"] = env_config.get("action_cost", 0)
+
+    env_config["action_cost"] = env_config.get("action_cost", 1)
+    args.action_cost *= env_config["action_cost"]
+    args.action_cost = int(args.action_cost / 0.001) * 0.001
+    args.max_steps = env_config.get("max_steps", 200)
+    # environment = GymEnvironment(
+    #     env_config["name"], seed=args.seed
+    # )
     environment = GymEnvironment(
-        env_config["name"], ctrl_cost_weight=env_config["action_cost"], seed=args.seed
+        env_config["name"], ctrl_cost_weight=args.action_cost, seed=args.seed
     )
     reward_model = environment.env.reward_model()
 
@@ -60,7 +66,7 @@ def main(args):
     env_name = environment.name.replace('-', '_') + '_' + env_version
     comment = '-'.join((env_name,
                         args.exploration,
-                        f'ac{env_config["action_cost"]}',
+                        f'ac{args.action_cost}',
                         f'b{args.beta}',
                         f'ep{args.train_episodes}',
                         f's{args.seed}'))
@@ -72,7 +78,7 @@ def main(args):
         dynamical_model=dynamical_model,
         reward_model=reward_model,
         thompson_sampling=args.exploration == "thompson",
-        tensorboard=False,
+        tensorboard=True,
         comment=comment,
         **kwargs,
     )
@@ -91,7 +97,7 @@ def main(args):
     train_agent(
         agent=agent,
         environment=environment,
-        max_steps=env_config["max_steps"],
+        max_steps=args.max_steps,
         num_episodes=args.train_episodes,
         render=args.render,
         print_frequency=1,
@@ -100,7 +106,7 @@ def main(args):
     evaluate_agent(
         agent=agent,
         environment=environment,
-        max_steps=env_config["max_steps"],
+        max_steps=args.max_steps,
         num_episodes=args.test_episodes,
         render=args.render,
     )
@@ -108,12 +114,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
-    # parser.add_argument(
-    #     "--agent",
-    #     type=str,
-    #     default="BPTT",
-    #     choices=["BPTT", "MVE", "DataAugmentation", "MPC", "MBMPO", 'SAC'],
-    # )
     parser.add_argument("--agent-config", type=str, default="exps/mujoco/config/agents/bptt.yaml")
     parser.add_argument("--env-config", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
 

@@ -80,9 +80,11 @@ class ODESystem(AbstractSystem):
         action.requires_grad = True
         f = self.func(None, state, action)
 
-        a = np.zeros((self.dim_state, self.dim_state))
-        b = np.zeros((self.dim_state, self.dim_action))
-        for i in range(self.dim_state):
+        dim_state = self.dim_state[0] if isinstance(self.dim_state, tuple) else self.dim_state
+        dim_action = self.dim_action[0] if isinstance(self.dim_action, tuple) else self.dim_action
+        a = np.zeros((dim_state, dim_state))
+        b = np.zeros((dim_state, dim_action))
+        for i in range(dim_state):
             aux = torch.autograd.grad(
                 f[i], state, allow_unused=True, retain_graph=True
             )[0]

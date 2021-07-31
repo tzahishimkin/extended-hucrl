@@ -35,7 +35,6 @@ run_simulation()
 {
      func_args="${1}"
       cuda=$((cuda_i % GPU_AMOUNT))
-      cuda=$((cuda + 1))
       cuda_i=$((cuda_i + 1))
       if [ ${on_linuxs} = true ]; then
         prefix_command="CUDA_VISIBLE_DEVICES=${cuda} TS_SOCKET=/tmp/socket-cuda${cuda} tsp nohup"
@@ -60,7 +59,7 @@ run_simulation()
 if [ $HOSTNAME = 'linux2a' ]; then
   GPU_AMOUNT=2
 elif [ $HOSTNAME = 'linux3' ]; then
-  GPU_AMOUNT=3
+  GPU_AMOUNT=4
 elif [ $HOSTNAME = 'linux4' ]; then
   GPU_AMOUNT=2
 elif [ $HOSTNAME = 'naama-server1' ]; then
@@ -73,7 +72,7 @@ fi
 
 if [ ${on_linuxs} = true ]; then
   for ((i = 0; i < $GPU_AMOUNT; i += 1)); do
-    TS_SOCKET=/tmp/socket-cuda$i tsp -S 3
+    TS_SOCKET=/tmp/socket-cuda$i tsp -S 1
   done
 fi
 

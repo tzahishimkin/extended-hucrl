@@ -2,7 +2,7 @@
 from itertools import chain
 
 import torch.nn.modules.loss as loss
-from torch.optim import Adam
+from torch.optim import Adam, SGD, RMSprop
 
 from rllib.algorithms.sac import SAC
 from rllib.policy import NNPolicy
@@ -30,16 +30,16 @@ class SACAgent(OffPolicyAgent):
     """
 
     def __init__(
-        self,
-        critic,
-        policy,
-        criterion=loss.MSELoss,
-        eta=0.2,
-        entropy_regularization=False,
-        num_iter=50,
-        train_frequency=50,
-        *args,
-        **kwargs,
+            self,
+            critic,
+            policy,
+            criterion=loss.MSELoss,
+            eta=0.2,
+            entropy_regularization=False,
+            num_iter=50,
+            train_frequency=50,
+            *args,
+            **kwargs,
     ):
         super().__init__(
             num_iter=num_iter, train_frequency=train_frequency, *args, **kwargs
@@ -65,7 +65,7 @@ class SACAgent(OffPolicyAgent):
         self.policy = self.algorithm.policy
 
     @classmethod
-    def default(cls, environment, policy=None, critic=None, lr=3e-4, *args, **kwargs):
+    def default(cls, environment, policy=None, critic=None, lr=3e-3, *args, **kwargs):
         """See `AbstractAgent.default'."""
         if critic is None:
             critic = NNEnsembleQFunction.default(environment, jit_compile=False)
@@ -73,7 +73,17 @@ class SACAgent(OffPolicyAgent):
             policy = NNPolicy.default(environment, jit_compile=False)
 
         optimizer = Adam(chain(policy.parameters(), critic.parameters()), lr=lr)
+        # optimizer = SGD([
+        #     {'params': policy.parameters(), 'lr': 3e-3},
+        # ], lr=3e-4)
 
+        # optimizer = SGD([
+        #     {'params': policy.parameters(), 'lr': 3e-3},
+        # {'params': critic.parameters(), 'lr': 3e-10}
+        # ], lr = 3e-4)
+
+        # optimizer = SGD(chain(policy.parameters(), critic.parameters()), lr=lr)
+        # , RMSprop
         return super().default(
             environment,
             critic=critic,

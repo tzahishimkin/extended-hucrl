@@ -173,7 +173,7 @@ class AbstractAgent(object, metaclass=ABCMeta):
                 action = self.pi.sample((100,)).mean(dim=0)
 
         if not self.policy.discrete_action:
-            action = action.clamp(-1.0, 1.0)
+            # action = action.clamp(-1.0, 1.0)
             self.policy.action_scale = self.policy.action_scale.to(action.device)
             action = self.policy.action_scale * action
         return action.detach().to("cpu").numpy()

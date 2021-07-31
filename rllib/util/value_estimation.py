@@ -212,7 +212,7 @@ def mc_return(
                 torch.tensor([lambda_]) ** (steps - 1),
             )
         )
-        w = w.unsqueeze(0)
+        w = w.unsqueeze(0).to(returns.device)
         if returns.ndim == 2:
             return (w * returns).sum(-1)
         else:

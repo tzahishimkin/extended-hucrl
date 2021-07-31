@@ -424,6 +424,7 @@ def main(args):
         old_ac = [l for l in old_dir.split('-') if 'ac' in l][0]
         new_dir = old_dir.replace(old_ac, new_ac)
         if new_ac != old_ac:
+            print(old_dir)
             assert not os.path.exists(new_dir), 'dir exists'
             hparam['action_cost'] = new_ac_val
             os.path.exists(old_dir)
@@ -452,7 +453,7 @@ if __name__ == "__main__":
     parser.add_argument("--dst-dir", type=str, default=None)
     parser.add_argument('--keys-to-plot', type=str, nargs='+',
                         # default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
-                        default=['train_return'])
+                        default=['policy_loss'])
     parser.add_argument("--figures-split", type=str, nargs='+', default=['env'])
     parser.add_argument("--subfigure-split", type=str, nargs='+', default=['action_cost'])
 

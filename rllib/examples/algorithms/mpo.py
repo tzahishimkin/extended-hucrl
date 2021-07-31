@@ -9,8 +9,8 @@ from rllib.policy import FelixPolicy, NNPolicy  # noqa: F401
 from rllib.util.neural_networks import zero_bias  # noqa: F401
 from rllib.util.training.agent_training import evaluate_agent, train_agent
 
-ENVIRONMENT = ["Taxi-v3", "CartPole-v0", "Pendulum-v0"][2]
-
+ENVIRONMENT = ["CartPole-v0", "Taxi-v3", "Pendulum-v0"][2]
+ENVIRONMENT = "MBCartPole-v0"
 NUM_EPISODES = 500
 MAX_STEPS = 1000
 
@@ -21,7 +21,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 environment = GymEnvironment(ENVIRONMENT, SEED)
 
-agent = MPOAgent.default(environment, gamma=GAMMA)
+agent = MPOAgent.default(environment, gamma=GAMMA, tensorboard=True)
 
 train_agent(
     agent,
