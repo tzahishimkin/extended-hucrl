@@ -59,6 +59,7 @@ class ModelBasedAgent(AbstractAgent):
         memory=None,
         batch_size=100,
         clip_grad_val=10.0,
+        unactuated_factor=1.,
         *args,
         **kwargs,
     ):
@@ -115,6 +116,8 @@ class ModelBasedAgent(AbstractAgent):
             max_len=1000, dim_state=self.dynamical_model.dim_state
         )
 
+        self.unactuated_factor = unactuated_factor
+
     def act(self, state):
         """Ask the agent for an action to interact with the environment.
 
@@ -132,9 +135,10 @@ class ModelBasedAgent(AbstractAgent):
         else:
             action = super().act(state)
 
-        return action.clip(
-            -self.policy.action_scale.cpu().numpy(), self.policy.action_scale.cpu().numpy()
-        )
+        clip_value = self.unactuated_factor * self.policy.action_scale.cpu().numpy()
+        action = action.clip(-clip_value, clip_value)
+
+        return action
 
     def observe(self, observation):
         """Observe a new transition.

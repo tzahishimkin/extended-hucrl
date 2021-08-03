@@ -9,7 +9,7 @@ from gym.spaces import Box
 class HallucinationWrapper(Wrapper):
     """A hallucination environment wrapper."""
 
-    def __init__(self, env: Env, hallucinate_rewards: bool = False) -> None:
+    def __init__(self, env: Env, hallucinate_rewards: bool = False, nstate_transform=None) -> None:
         env.reward_range = float("-inf"), float("+inf")
         super().__init__(env=env)
         if hallucinate_rewards:
@@ -23,6 +23,8 @@ class HallucinationWrapper(Wrapper):
             dtype=np.float32,
         )
 
+        self.nstate_transform = nstate_transform
+
     @property
     def original_dim_action(self) -> Tuple[int]:
         """Get original action dimension."""
@@ -35,8 +37,11 @@ class HallucinationWrapper(Wrapper):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         """See `gym.Env.step()'."""
-        return self.env.step(action[: self.original_dim_action[0]])
 
+        o = self.env.step(action[: self.original_dim_action[0]])
+        if self.nstate_transform is not None:
+            o = (self.nstate_transform(o[0]),) + o[1:]
+        return o
     @property
     def name(self):
         """Get wrapper name."""

@@ -3,6 +3,7 @@ import subprocess
 import os
 import argparse
 import paramiko
+from argparse import Namespace
 
 servers = {
     'Linux2': {'name': 'Linux2a', 'pass': '1234', 'user': 'tzahi'},
@@ -32,9 +33,12 @@ def scp_copy(args):
         sftp = client.open_sftp()
         for line in stdout:
             remotepath = line.strip('\n')
-            localpath = os.path.join(args.dst_path,
-                                     remotepath.replace(f'{project_path}/{args.src_path}', '')
-                                     )
+            # if not ('BPTT' in remotepath and 'MBInv' in remotepath and 'Aug' in remotepath):
+            #     continue
+
+            localpath = f"{args.dst_path}/{remotepath.replace(f'{project_path}/{args.src_path}/', '')}"
+
+            localpath = localpath.replace('/', '\\')
             if not os.path.exists(localpath):
                 os.makedirs(os.path.dirname(localpath), exist_ok=True)
                 sftp.get(remotepath, localpath)
@@ -42,6 +46,18 @@ def scp_copy(args):
         sftp.close()
         client.close()
         del client
+
+
+def get_defualt_hucrl_args():
+    args = {
+        "project": 'hucrl',
+        "servers": ['Linux3', "Linux4"],
+        "src_path": 'runs',
+        "dst_path": 'runs',
+        "files_postfix": '.json',
+    }
+    args = Namespace(**args)
+    return args
 
 
 if __name__ == "__main__":

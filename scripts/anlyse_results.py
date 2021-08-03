@@ -1,25 +1,21 @@
-import torch
+from collections import defaultdict
+import scipy.ndimage as ndi
+from itertools import chain
+import numpy as np
+import yaml
 import hashlib
-import itertools
+import copy
 import os
 import pathlib
 import json
 import argparse
-import importlib
-import shutil
-
-import copy
-import scipy.ndimage as ndi
-
-from collections import defaultdict
-from itertools import chain
-
-import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.cm
-from edit_from_fig import FigEditor
+import shutil
+import torch
 
-import yaml
+from edit_from_fig import FigEditor
+from scripts import download_from_server
 
 
 def load_yaml(src_path):
@@ -279,12 +275,16 @@ def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **k
     datas = {}
     for (data_statistic, statistics_file, hparam) in zip(data_statistics, statistics_files, hparams):
         # statistics_file
-        exp = f"{hparam['env']}-ac{hparam['action_cost']}-b{hparam['beta']}"
-        algo = f"{hparam['agent']}-{hparam['exploration']}"  # key
         try:
-            datas.setdefault(f"{exp}--{algo}", []).append(data_statistic[attribute])
-        except BaseException:
-            continue
+            exp = f"{hparam['env']}-ac{hparam['action_cost']}-b{hparam['beta']}"
+            algo = f"{hparam['agent']}-{hparam['exploration']}"  # key
+            try:
+                datas.setdefault(f"{exp}--{algo}", []).append(data_statistic[attribute])
+                print(statistics_file)
+            except BaseException:
+                continue
+        except KeyError:
+            print(statistics_file)
 
     data_exp = {}
     # for expalgo, data in datas.items():
@@ -377,7 +377,8 @@ def main(args):
         [os.remove(l.as_posix()) for l in pathlib.Path(src_dir).glob(f'**/*.pkl') if 'run' in l.as_posix()]
 
     # download jsons from servers
-    # os.system('python download_from_server.py')
+    # download_from_server.scp_copy(download_from_server.get_defualt_hucrl_args())
+    # os.system('python scripts/download_from_server.py')
 
     # fetch json data files data
     stats_file_name = 'statistics'
@@ -400,10 +401,10 @@ def main(args):
     # uniq_key_all = get_unique_keys(data_alls)
 
     # remove invalid simulations
-    invalidx = get_invalid_sims_indx(data_statistics, max_epochs=249)
+    invalidx = get_invalid_sims_indx(data_statistics, max_epochs=145)
     # delete_invalid_sims(invalidx, statistics_files)
 
-    valid_sim_inds = get_valid_simulations_indxes(data_statistics, min_epochs=250)
+    valid_sim_inds = get_valid_simulations_indxes(data_statistics, min_epochs=150)
     data_statistics = [data_statistics[v] for v in valid_sim_inds]
     statistics_files = [statistics_files[v] for v in valid_sim_inds]
     hparams_files = [hparams_files[v] for v in valid_sim_inds]
@@ -433,7 +434,7 @@ def main(args):
             shutil.move(old_dir, new_dir)
 
     # update_ac(hparams_files[0])
-    [update_ac(h_file) for h_file in hparams_files]
+    # [update_ac(h_file) for h_file in hparams_files]
 
     # plot graphs
     [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir=dst_dir)  # , **args.__dict__)
@@ -453,7 +454,7 @@ if __name__ == "__main__":
     parser.add_argument("--dst-dir", type=str, default=None)
     parser.add_argument('--keys-to-plot', type=str, nargs='+',
                         # default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
-                        default=['policy_loss'])
+                        default=['dyn-loss'])
     parser.add_argument("--figures-split", type=str, nargs='+', default=['env'])
     parser.add_argument("--subfigure-split", type=str, nargs='+', default=['action_cost'])
 

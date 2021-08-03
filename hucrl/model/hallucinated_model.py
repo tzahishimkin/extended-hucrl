@@ -45,6 +45,7 @@ class HallucinatedModel(TransformedModel):
         if optimism_vars.shape[-1] == 0:
             return mean, tril
 
+        self.nst_unc_scale = tril
         return (
             mean + self.beta * (tril @ optimism_vars.unsqueeze(-1)).squeeze(-1),
             torch.zeros_like(tril),

@@ -105,6 +105,7 @@ class AbstractAlgorithm(nn.Module, metaclass=ABCMeta):
         critic_ensemble_lambda=1.0,
         criterion=nn.MSELoss(reduction="mean"),
         reward_transformer=RewardTransformer(),
+        nstate_uncertainty_model=None,
         *args,
         **kwargs,
     ):
@@ -117,6 +118,7 @@ class AbstractAlgorithm(nn.Module, metaclass=ABCMeta):
         self.critic_target = deep_copy_module(self.critic)
         self.criterion = criterion
         self.reward_transformer = reward_transformer
+        self.nstate_uncertainty_model = nstate_uncertainty_model
         self.critic_ensemble_lambda = critic_ensemble_lambda
         if policy is None:
             self.entropy_loss = EntropyLoss()
@@ -344,7 +346,21 @@ class AbstractAlgorithm(nn.Module, metaclass=ABCMeta):
             loss += self.critic_loss(trajectory)
             loss += self.regularization_loss(trajectory, len(trajectories))
 
+            self.log_uncertainty_err(trajectory)
+
         return loss / len(trajectories)
+
+    def log_uncertainty_err(self, observation):
+        if self.nstate_uncertainty_model:
+            nstate_unc_real = self.nstate_uncertainty_model(observation.state)
+            nstate_unc_pred = torch.diagonal(observation.next_state_scale_tril, offset=0, dim1=-2, dim2=-1)
+            if torch.isnan(nstate_unc_pred.mean()):
+                self._info.update(er_nstate_unc=nstate_unc_pred.mean())
+                return
+            nstate_unc_real = nstate_unc_real[...,None].expand(nstate_unc_pred.shape)
+            er_nstate_unc = nstate_unc_real - nstate_unc_pred
+            er_nstate_unc = er_nstate_unc.mean()
+            self._info.update(er_nstate_unc=er_nstate_unc)
 
     def get_kl_entropy(self, state):
         """Get kl divergence and current policy at a given state.

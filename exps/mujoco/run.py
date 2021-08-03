@@ -7,7 +7,6 @@ import torch
 from dotmap import DotMap
 
 torch.set_default_dtype(torch.float32)
-# torch.set_default_tensor_type(torch.float32)
 
 from rllib.environment import GymEnvironment
 from rllib.model import TransformedModel
@@ -17,6 +16,7 @@ from rllib.util.training.agent_training import evaluate_agent, train_agent
 from exps.util import load_yaml
 from hucrl.environment.hallucination_wrapper import HallucinationWrapper
 from hucrl.model.hallucinated_model import HallucinatedModel
+from rllib.util.transformers import StateTransform
 
 
 def set_agent(args):
@@ -35,28 +35,34 @@ def main(args):
 
     # _, environment = init_experiment(args)
 
-    env_config["action_cost"] = env_config.get("action_cost", 1)
+    env_config["action_cost"] = env_config.get("action_cost", 0.1)
     args.action_cost *= env_config["action_cost"]
     args.action_cost = int(args.action_cost / 0.001) * 0.001
     args.max_steps = env_config.get("max_steps", 200)
-    # environment = GymEnvironment(
-    #     env_config["name"], seed=args.seed
-    # )
-    environment = GymEnvironment(
-        env_config["name"], ctrl_cost_weight=args.action_cost, seed=args.seed
-    )
+
+    # environment = GymEnvironment(env_config["name"], seed=args.seed)
+    try:
+        environment = GymEnvironment(env_config["name"], ctrl_cost_weight=args.action_cost, seed=args.seed)
+    except TypeError:
+        environment = GymEnvironment(env_config["name"], action_cost=args.action_cost, seed=args.seed)
+
     reward_model = environment.env.reward_model()
+
+    nstate_aditive_noise_model = StateTransform(args.nst_uncertainty_type, args.nst_uncertainty_factor)
 
     if args.exploration == "optimistic":
         dynamical_model = HallucinatedModel.default(environment, beta=args.beta)
-        environment.add_wrapper(HallucinationWrapper)
+        environment.add_wrapper(HallucinationWrapper,
+                                hallucinate_rewards=args.hallucinate_rewards,
+                                nstate_transform=nstate_aditive_noise_model)
     else:
         dynamical_model = TransformedModel.default(environment)
     kwargs = load_yaml(args.agent_config)
 
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    kwargs['device'] = args.device
 
+    kwargs['device'] = args.device
+    kwargs['unactuated_factor'] = args.unactuated_factor
+    kwargs['log_dir'] = args.log_dir
     dynamical_model = dynamical_model.to(args.device)
 
     env_version = args.env_config.split('/')[0]
@@ -80,6 +86,7 @@ def main(args):
         thompson_sampling=args.exploration == "thompson",
         tensorboard=True,
         comment=comment,
+        nstate_uncertainty_model=nstate_aditive_noise_model.func,
         **kwargs,
     )
     args.exp_name = \
@@ -115,7 +122,15 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parameters for H-UCRL.")
     parser.add_argument("--agent-config", type=str, default="exps/mujoco/config/agents/bptt.yaml")
+
     parser.add_argument("--env-config", type=str, default="exps/mujoco/config/envs/half-cheetah.yaml")
+
+    parser.add_argument("--unactuated-factor", type=float, default=1.,
+                        help='whether to clip actions to smaller values. the unactuated-factor is taken as a '
+                             'factor of the action scale of the environment. 1 means it will stay the same')
+
+    parser.add_argument("--nst-uncertainty-type", type=str, default=None)
+    parser.add_argument("--nst-uncertainty-factor", type=float, default=0.2)
 
     parser.add_argument("--exploration", type=str, default="optimistic",
                         choices=["optimistic", "expected", "thompson"])
@@ -132,4 +147,11 @@ if __name__ == "__main__":
     parser.add_argument("--action-cost", type=float, default=0.1)
 
     parser.add_argument("--beta", type=float, default=1.0)
+
+    parser.add_argument("--log-dir", type=str, default=None)
+
+
+    parser.add_argument("--hallucinate-rewards", type=bool, default=True,
+                        help='this will only apply if you have an Hallucination model')
+
     main(parser.parse_args())
