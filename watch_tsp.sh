@@ -1,0 +1,1 @@
+watch 'bash scripts/status_tsp_runs.sh'

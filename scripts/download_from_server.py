@@ -17,7 +17,7 @@ project_paths = {
 }
 
 
-def scp_copy(args):
+def scp_copy(args, override=False):
     for server in args.servers:
 
         # connect to client
@@ -39,8 +39,12 @@ def scp_copy(args):
             localpath = f"{args.dst_path}/{remotepath.replace(f'{project_path}/{args.src_path}/', '')}"
 
             localpath = localpath.replace('/', '\\')
+            os.makedirs(os.path.dirname(localpath), exist_ok=True)
+
+            if override and os.path.exists(localpath):
+                os.remove(localpath)
+
             if not os.path.exists(localpath):
-                os.makedirs(os.path.dirname(localpath), exist_ok=True)
                 sftp.get(remotepath, localpath)
 
         sftp.close()

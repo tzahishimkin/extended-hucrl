@@ -2,7 +2,7 @@
 
 import argparse
 import importlib
-
+import numpy as np
 import torch
 from dotmap import DotMap
 
@@ -69,13 +69,19 @@ def main(args):
     if env_version == 'exp':
         env_version = 'hucrl'
 
+
     env_name = environment.name.replace('-', '_') + '_' + env_version
     comment = '-'.join((env_name,
                         args.exploration,
                         f'ac{args.action_cost}',
                         f'b{args.beta}',
                         f'ep{args.train_episodes}',
-                        f's{args.seed}'))
+                        f'unc{args.nst_uncertainty_type}',
+                        f'{args.nst_uncertainty_factor}',
+                        f'{args.unactuated_factor}',
+                        f's{args.seed}',
+                        f'rand{np.random.randint(100)}'
+                        ))
 
     agent = getattr(
         importlib.import_module("rllib.agent"), f"{args.agent}Agent"
@@ -149,7 +155,6 @@ if __name__ == "__main__":
     parser.add_argument("--beta", type=float, default=1.0)
 
     parser.add_argument("--log-dir", type=str, default=None)
-
 
     parser.add_argument("--hallucinate-rewards", type=bool, default=True,
                         help='this will only apply if you have an Hallucination model')

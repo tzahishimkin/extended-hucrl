@@ -1,0 +1,1 @@
+bash cripts/ts_command.sh -C

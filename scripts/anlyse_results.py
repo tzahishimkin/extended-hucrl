@@ -257,6 +257,25 @@ def plot_mean_std(x, ym, ys, title, path):
     if path is not None:
         plt.savefig(path)
 
+def edit_figs(data_att_proc):
+    for exp in data_att_proc.keys():
+        if 'MBInver' in exp and 'exp' in exp:
+            print(exp)
+            data_att_proc[exp].keys()
+            d = {key.replace('BPTT-', 'MPC-'): data_att_proc[exp][key] for key in data_att_proc[exp].keys()}
+            d.keys()
+            d['hucrl'] = d.pop('MPC-optimistic')
+            d['greedy'] = d.pop('MPC-expected')
+            d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
+            d['hucrl'] = copy.deepcopy(d['greedy'])
+            d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
+
+            d.keys()
+
+            editor = FigEditor(d, exp, save_folder=f'edited_figs')
+            editor.run()
+            editor.save(None)  # , new_keys=['MPC', None], title='Walker2d with action cost = 0.1')
+            del editor
 
 def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **kwargs):
     # d_struct = [(d[attribute], hparam)
@@ -265,99 +284,86 @@ def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **k
     # d_struct = sorted(d_struct, key=lambda x: x[1])
     # uniques = np.unique([d[1]['env'] for d in d_struct])
     # data = {unique: [d for d in d_struct if d[1]['env'] == unique] for unique in uniques}
-
+    print(f'plotting key {attribute}')
     if dst_dir is None:
         dst_dir = os.path.join(statistics_files[0].split('/')[0], 'figures')
     out_dir = os.path.join(dst_dir, attribute)
     os.makedirs(out_dir, exist_ok=True)
 
+    print('processing data')
     figs_list = []
     datas = {}
     for (data_statistic, statistics_file, hparam) in zip(data_statistics, statistics_files, hparams):
         # statistics_file
         try:
-            exp = f"{hparam['env']}-ac{hparam['action_cost']}-b{hparam['beta']}"
-            algo = f"{hparam['agent']}-{hparam['exploration']}"  # key
+            exp = f"{hparam['env']}-" \
+                  f"ac{hparam['action_cost']}-" \
+                  f"Unc{hparam.get('nst_uncertainty_type', None)}{hparam.get('nst_uncertainty_factor', 0)}-" \
+                  f"Una{hparam.get('unactuated_factor', 1)}"
+            algo = f"{hparam['agent']}-" \
+                   f"{hparam['exploration']}-" \
+                   f"b{hparam['beta']}-" \
+                   f"helr{hparam.get('hallucinate_rewards', True)}"  # key
             try:
-                datas.setdefault(f"{exp}--{algo}", []).append(data_statistic[attribute])
-                print(statistics_file)
+                datas.setdefault(f"{exp}", {}).setdefault(f"{algo}", []).append(data_statistic)
             except BaseException:
                 continue
         except KeyError:
-            print(statistics_file)
+            pass
 
-    data_exp = {}
-    # for expalgo, data in datas.items():
-    #     exp, algo, = expalgo.split('--')
-    #     min_length = min([len(d) for d in data])
-    #     data = [d[:min_length] for d in data]
-    #     value = np.array(data)
+    print('processing attribute data')
 
+    data_att_proc = {}
     plot_original_figs = True
+    for exp_name, algos in datas.items():
+        for algo_name, data in algos.items():
+            if data == [] or attribute not in data[0]:
+                continue
 
-    for expalgo, data in datas.items():
-        if data == []:
-            continue
+            data = [d[attribute] for d in data  if attribute in d]
 
-        exp, algo, = expalgo.split('--')
-        min_length = min([len(d) for d in data])
-        data = [d[:min_length] for d in data]
-        value = np.array(data)
-        fig = plt.figure(exp)
-        figs_list.append(exp)
+            min_length = min([len(d) for d in data])
+            data = [d[:min_length] for d in data]
 
-        val_median = np.median(value, axis=0)
-        val_median = ndi.gaussian_filter(val_median, sigma=10)
-        val_std = np.std(value, axis=0)
-        val_std = ndi.gaussian_filter(val_std, sigma=10)
-        x = range(len(val_median))
+            value = np.array(data)
 
-        if plot_original_figs:
-            plot_mean_std(x, val_median, val_std, algo, path=None)
+            val_median = np.median(value, axis=0)
+            val_median = ndi.gaussian_filter(val_median, sigma=10)
 
-        if exp in data_exp:
-            assert algo not in data_exp, f'{algo} already in data_exp[{exp}]'
-        data_exp.setdefault(f"{exp}", {})[algo] = [x, val_median, val_std]
+            val_std = np.std(value, axis=0)
+            val_std = ndi.gaussian_filter(val_std, sigma=10)
 
-    edit_figs = False
-    if edit_figs:
-        for exp in data_exp.keys():
-            if 'MBInver' in exp and 'exp' in exp:
-                print(exp)
-                data_exp[exp].keys()
-                d = {key.replace('BPTT-', 'MPC-'): data_exp[exp][key] for key in data_exp[exp].keys()}
-                d.keys()
-                d['hucrl'] = d.pop('MPC-optimistic')
-                d['greedy'] = d.pop('MPC-expected')
-                d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
-                d['hucrl'] = copy.deepcopy(d['greedy'])
-                d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
+            x = range(len(val_median))
 
-                d.keys()
+            if exp_name in data_att_proc:
+                assert algo_name not in data_att_proc, f'{algo_name} already in data_att_proc[{exp_name}]'
+            data_att_proc.setdefault(f"{exp_name}", {})[algo_name] = [x, val_median, val_std]
 
-                editor = FigEditor(d, exp, save_folder=f'edited_figs')
-                editor.run()
-                editor.save(None)  # , new_keys=['MPC', None], title='Walker2d with action cost = 0.1')
-                del editor
-
+    print('generating figures')
     if plot_original_figs:
-        for fig_name in figs_list:
-            fig = plt.figure(fig_name)
-            # algo = key #f'{agent}-{exploration}'
+        for exp_name, algos in data_att_proc.items():
+            fig = plt.figure(exp_name)
+            for algo_name, data in algos.items():
+                [x, val_median, val_std] = data
+
+                plot_mean_std(x, val_median, val_std, algo_name, path=None)
+
             plt.legend()
-            save_name = os.path.join(out_dir, fig_name + '.jpg')
-            plt.title(fig_name)
+            plt.title(exp_name)
+
+            save_name = os.path.join(out_dir, exp_name + '.jpg')
             if os.path.exists(save_name):
                 os.remove(save_name)
             plt.savefig(save_name)
-
-        for fig_name in figs_list:
-            fig = plt.figure(fig_name)
             plt.close()
 
-    # for key, value in data.items():
-    #     save_name = os.path.join(out_dir, key+'.jpg')
-    #     plt.savefig(save_name)
+    save_data = True
+    if save_data:
+        np.save('runs/np_data', data_att_proc)
+
+    edit_figs_a = False
+    if edit_figs_a:
+        edit_figs(data_att_proc)
 
 
 def main(args):
@@ -366,6 +372,13 @@ def main(args):
     dst_dir = args.dst_dir
     if dst_dir is not None:
         os.makedirs(dst_dir, exist_ok=True)
+
+    edit_figures = True
+    if edit_figures:
+        data = np.load('runs/np_data.npy', allow_pickle=True)
+        edit_figs(data.item())
+
+
 
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
@@ -377,8 +390,8 @@ def main(args):
         [os.remove(l.as_posix()) for l in pathlib.Path(src_dir).glob(f'**/*.pkl') if 'run' in l.as_posix()]
 
     # download jsons from servers
-    # download_from_server.scp_copy(download_from_server.get_defualt_hucrl_args())
-    # os.system('python scripts/download_from_server.py')
+    print('downloading from servers')
+    # download_from_server.scp_copy(download_from_server.get_defualt_hucrl_args(), override=True)
 
     # fetch json data files data
     stats_file_name = 'statistics'
@@ -387,6 +400,12 @@ def main(args):
     statistics_files = [l.as_posix() for l in lists]
 
     # load and arange data
+
+    # for path in statistics_files:
+    #     try:
+    #         load_json(path)
+    #     except json.decoder.JSONDecodeError:
+    #         shutil.rmtree(os.path.dirname(path))
     data_statistics = [load_json(path) for path in statistics_files]
     data_statistics = [to_dict_list(d) for d in data_statistics]
 
@@ -401,8 +420,8 @@ def main(args):
     # uniq_key_all = get_unique_keys(data_alls)
 
     # remove invalid simulations
-    invalidx = get_invalid_sims_indx(data_statistics, max_epochs=145)
-    # delete_invalid_sims(invalidx, statistics_files)
+    invalidx = get_invalid_sims_indx(data_statistics, max_epochs=99)
+    delete_invalid_sims(invalidx, statistics_files)
 
     valid_sim_inds = get_valid_simulations_indxes(data_statistics, min_epochs=150)
     data_statistics = [data_statistics[v] for v in valid_sim_inds]
@@ -437,8 +456,17 @@ def main(args):
     # [update_ac(h_file) for h_file in hparams_files]
 
     # plot graphs
-    [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir=dst_dir)  # , **args.__dict__)
-     for save_key in args.keys_to_plot]
+    plot_figs = False
+    if plot_figs:
+        if args.keys_to_plot[0] == 'all-keys':
+            args.keys_to_plot = np.unique([k for data_statistic in data_statistics for k in data_statistic.keys()])
+        [plot_key(data_statistics, statistics_files, hparams, save_key, dst_dir=dst_dir)  # , **args.__dict__)
+         for save_key in args.keys_to_plot]
+
+    edit_figures = False
+    if edit_figures:
+        data = np.load('runs/np_data', allow_pickle=True)
+        edit_figs(data)
 
     print_simulations_resolves = False
     if print_simulations_resolves:
@@ -454,7 +482,7 @@ if __name__ == "__main__":
     parser.add_argument("--dst-dir", type=str, default=None)
     parser.add_argument('--keys-to-plot', type=str, nargs='+',
                         # default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
-                        default=['dyn-loss'])
+                        default=['all-keys'])  # 'all-keys'
     parser.add_argument("--figures-split", type=str, nargs='+', default=['env'])
     parser.add_argument("--subfigure-split", type=str, nargs='+', default=['action_cost'])
 

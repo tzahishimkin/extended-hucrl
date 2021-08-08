@@ -8,7 +8,7 @@ class StateTransform(object):
         self.type = type
         self.factor = factor
         if type == None:
-            self.func = lambda x: 0.
+            self.func = lambda x: x[...,-1] * 0.
         elif type == 'half-sum':
             self.func = self.neg_abs_noise
 
