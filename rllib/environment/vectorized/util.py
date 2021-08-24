@@ -5,7 +5,7 @@ import numpy as np
 from gym import Env
 
 from rllib.util.utilities import get_backend
-
+import torch
 
 class VectorizedEnv(Env, metaclass=ABCMeta):
     """Vectorized implementation of Acrobot."""
@@ -27,7 +27,12 @@ class VectorizedEnv(Env, metaclass=ABCMeta):
         if self.bk is np:
             return self.bk.clip(val, min_val, max_val)
         else:
-            return self.bk.clamp(val, min_val, max_val)
+            try:
+                return self.bk.clamp(val, min_val, max_val)
+            except TypeError:
+
+                return self.bk.clamp(torch.tensor(val), min_val, max_val)
+
 
     def cat(self, arrays, axis=-1):
         """Concatenate arrays along an axis."""

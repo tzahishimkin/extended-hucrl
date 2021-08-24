@@ -1,6 +1,7 @@
 """Underwater Vehicle Implementation."""
 
 import numpy as np
+import torch
 
 from rllib.environment.systems.ode_system import ODESystem
 from rllib.util.utilities import get_backend
@@ -28,8 +29,8 @@ class UnderwaterVehicle(ODESystem):
         """Get the thrust coefficient."""
         bk = get_backend(velocity)
         return (
-            -0.5 * bk.tanh(0.1 * (bk.abs(self.drag_force(velocity) - thrust) - 30.0))
-            + 0.5
+                -0.5 * bk.tanh(0.1 * (bk.abs(self.drag_force(velocity) - thrust) - 30.0))
+                + 0.5
         )
 
     def drag_force(self, velocity):
@@ -62,8 +63,12 @@ class UnderwaterVehicle(ODESystem):
         m = 3.0 + 1.5 * bk.sin(bk.abs(velocity))  # mass
         k = self.thrust(velocity, u)  # thrust coefficient.
         v_dot = (k * u - self.drag_force(velocity)) / m
-
         return v_dot
+
+    def reward(self, s, a, *wargs):
+        """See `AbstractSystem.state'."""
+        v_dot = self._ode(s, s, a)
+        return (torch.tensor(1 - np.abs(v_dot - 2), dtype=torch.float32), torch.tensor(0, dtype=torch.float32))
 
 
 if __name__ == "__main__":

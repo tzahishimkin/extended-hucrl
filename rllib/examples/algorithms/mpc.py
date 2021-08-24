@@ -6,21 +6,22 @@ from rllib.algorithms.mpc import CEMShooting, MPCSolver, MPPIShooting, RandomSho
 from rllib.dataset.experience_replay import ExperienceReplay
 from rllib.environment import GymEnvironment
 from rllib.model.environment_model import EnvironmentModel
-from rllib.util.training.agent_training import evaluate_agent
-
+from rllib.util.training.agent_training import evaluate_agent, train_agent
+import copy
 SEED = 0
 MAX_STEPS = 200
 ENVIRONMENT = ["VPendulum-v0", "VContinuous-CartPole-v0"][1]
+# ENVIRONMENT = "CartPole-v0" #"Pendulum-v0"
 
 env = GymEnvironment(ENVIRONMENT, SEED)
 env_model = copy.deepcopy(env)
 env_model.reset()
-dynamical_model = EnvironmentModel(env_model, model_kind="dynamics")
-reward_model = EnvironmentModel(env_model, model_kind="rewards")
-termination_model = EnvironmentModel(env_model, model_kind="termination")
+dynamical_model = copy.deepcopy(EnvironmentModel(env_model, model_kind="dynamics"))
+reward_model = copy.deepcopy(EnvironmentModel(env_model, model_kind="rewards"))
+termination_model = copy.deepcopy(EnvironmentModel(env_model, model_kind="termination"))
 GAMMA = 0.99
 horizon = 50
-num_iter = 5
+num_iter = 100
 num_samples = 400
 num_elites = 5
 num_steps = horizon
@@ -82,4 +83,15 @@ else:
     raise NotImplementedError
 
 agent = MPCAgent(mpc_solver=mpc_solver)
+NUM_EPISODES = 50
+train_agent(
+    agent,
+    env_model,
+    num_episodes=NUM_EPISODES,
+    max_steps=MAX_STEPS,
+    print_frequency=1,
+    render=True,
+)
+
+
 evaluate_agent(agent, environment=env, num_episodes=1, max_steps=MAX_STEPS, render=True)

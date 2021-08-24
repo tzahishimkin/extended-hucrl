@@ -180,8 +180,8 @@ class MPCSolver(nn.Module, metaclass=ABCMeta):
 
         state = repeat_along_dimension(state, number=self.num_samples, dim=-2)
 
-        device = 'cuda' if next(self.dynamical_model.parameters()).is_cuda else 'cpu'
-
+        # device = 'cuda' if next(self.dynamical_model.parameters()).is_cuda else 'cpu'
+        device = 'cpu'
         batch_actions = [
             torch.randn(
                 (self.horizon,) + batch_shape + (self.num_samples, self.dim_action)

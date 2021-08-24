@@ -89,7 +89,8 @@ class CartPole(ODESystem):
             + total_mass * g * bk.sin(theta)
         ) / det
 
-        return np.array((x_dot, theta_dot, v_dot, omega_dot))
+        return (x_dot, theta_dot, v_dot, omega_dot)
+        # return np.array((x_dot, theta_dot, v_dot, omega_dot))
 
 
 class CartPoleEnv(SystemEnvironment):

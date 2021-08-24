@@ -10,6 +10,7 @@ from rllib.environment import GymEnvironment, SystemEnvironment
 from rllib.util.training.agent_training import evaluate_agent, train_agent
 
 ENVIRONMENT = ["MountainCarContinuous-v0", "Pendulum-v0"][1]
+ENVIRONMENT = "MBCartPole-v0"
 ENVIRONMENT = "UnderwaterVehicle"
 NUM_EPISODES = 40
 MAX_STEPS = 1000
@@ -27,8 +28,8 @@ if ENVIRONMENT == "UnderwaterVehicle":
     # env2 = env()
     f = sys.func(None, np.ones(sys.dim_state), np.ones(sys.dim_action))
     print(f)
-    sys.linearize()
-    sys.linearize(np.ones(sys.dim_state), np.ones(sys.dim_action))
+    # sys.linearize()
+    # sys.linearize(np.ones(sys.dim_state), np.ones(sys.dim_action))
 
     environment = SystemEnvironment(sys)
 else:

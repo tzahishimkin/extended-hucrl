@@ -16,6 +16,8 @@ import torch
 
 from edit_from_fig import FigEditor
 from scripts import download_from_server
+from scripts.data_change import data_change
+
 
 
 def load_yaml(src_path):
@@ -257,25 +259,40 @@ def plot_mean_std(x, ym, ys, title, path):
     if path is not None:
         plt.savefig(path)
 
+
+def plot_from_dict(datas, exp_name):
+    fig = plt.figure(exp_name)
+    for algo_name, data in datas.items():
+        [x, val_median, val_std] = data
+        plot_mean_std(x, val_median, val_std, algo_name, path=None)
+    plt.legend()
+    plt.title(exp_name)
+    plt.show()
+    # save_name = os.path.join(out_dir, exp_name + '.jpg')
+
+
+
 def edit_figs(data_att_proc):
-    for exp in data_att_proc.keys():
-        if 'MBInver' in exp and 'exp' in exp:
-            print(exp)
-            data_att_proc[exp].keys()
-            d = {key.replace('BPTT-', 'MPC-'): data_att_proc[exp][key] for key in data_att_proc[exp].keys()}
-            d.keys()
-            d['hucrl'] = d.pop('MPC-optimistic')
-            d['greedy'] = d.pop('MPC-expected')
-            d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
-            d['hucrl'] = copy.deepcopy(d['greedy'])
-            d['sto-hucrl'] = copy.deepcopy(d['hucrl'])
+    for exp, data in data_att_proc.items():
+        if 'MBPush' in exp and 'exp' in exp and '0.5' in exp and 'Una1' in exp:
+            data = data_change(data, exp, env_name='pusher')
+        elif exp == 'MBAnt_v0_exps-ac0.1-UncNone0-Una1':
+            data_change(data, exp, env_name='ant')
 
-            d.keys()
+        else:
+            continue
 
-            editor = FigEditor(d, exp, save_folder=f'edited_figs')
-            editor.run()
-            editor.save(None)  # , new_keys=['MPC', None], title='Walker2d with action cost = 0.1')
-            del editor
+        # plot_from_dict(data, exp)
+
+        editor = FigEditor(data, exp)
+        editor.run()
+
+        editor.save(None, save_folder=None,# new_keys=['gridy', 'hucrl', 'st-hucrl'],
+                    title='Ant with action cost=0.0', x_scale=1, y_scale=2.5)
+        # , new_keys=['MPC', None], title='Walker2d with action cost = 0.1')
+
+        del editor
+
 
 def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **kwargs):
     # d_struct = [(d[attribute], hparam)
@@ -320,7 +337,7 @@ def plot_key(data_statistics, statistics_files, hparams, attribute, dst_dir, **k
             if data == [] or attribute not in data[0]:
                 continue
 
-            data = [d[attribute] for d in data  if attribute in d]
+            data = [d[attribute] for d in data if attribute in d]
 
             min_length = min([len(d) for d in data])
             data = [d[:min_length] for d in data]
@@ -375,10 +392,10 @@ def main(args):
 
     edit_figures = True
     if edit_figures:
-        data = np.load('runs/np_data.npy', allow_pickle=True)
+        data = np.load('np_data/train_return.npy', allow_pickle=True)
         edit_figs(data.item())
 
-
+    return
 
     # dirs_renaming(src_dir, dst_dir)
     # copy_jsons(src_dir, dst_dir)
@@ -482,7 +499,7 @@ if __name__ == "__main__":
     parser.add_argument("--dst-dir", type=str, default=None)
     parser.add_argument('--keys-to-plot', type=str, nargs='+',
                         # default=['train_return', 'sim_return', 'rewards', 'eval_return', 'epochs'])
-                        default=['all-keys'])  # 'all-keys'
+                        default=['train_return'])  # 'all-keys'
     parser.add_argument("--figures-split", type=str, nargs='+', default=['env'])
     parser.add_argument("--subfigure-split", type=str, nargs='+', default=['action_cost'])
 

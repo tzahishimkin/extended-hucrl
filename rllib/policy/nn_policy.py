@@ -35,7 +35,7 @@ class NNPolicy(AbstractPolicy):
         layers=(200, 200),
         biased_head=True,
         non_linearity="Tanh",
-        squashed_output=True,
+        squashed_output=False,
         initial_scale=0.5,
         input_transform=None,
         jit_compile=False,

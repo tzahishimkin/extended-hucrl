@@ -2,6 +2,7 @@
 
 import gym
 import gym.wrappers
+import torch
 
 from .abstract_environment import AbstractEnvironment
 from .vectorized.util import VectorizedEnv
@@ -98,6 +99,11 @@ class GymEnvironment(AbstractEnvironment):
 
     def render(self, mode="human"):
         """See `AbstractEnvironment.render'."""
+        # if len(self.state.shape) == 2:
+        #     return
+        # if isinstance(self.state, torch.Tensor):
+        # self.state = self.state.cpu().numpy()
+
         return self.env.render(mode)
 
     def close(self):

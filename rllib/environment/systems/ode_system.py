@@ -22,7 +22,7 @@ class ODESystem(AbstractSystem):
     """
 
     def __init__(
-        self, func, step_size, dim_state, dim_action, integrator=integrate.RK45
+            self, func, step_size, dim_state, dim_action, integrator=integrate.RK45
     ):
         super().__init__(dim_state=dim_state, dim_action=dim_action)
 
@@ -41,6 +41,8 @@ class ODESystem(AbstractSystem):
         while integrator.status == "running":
             integrator.step()
         self.state = integrator.y
+        # self._reward = self.state
+
         self._time += self.step_size
 
         return self.state
@@ -78,13 +80,13 @@ class ODESystem(AbstractSystem):
 
         state.requires_grad = True
         action.requires_grad = True
+
         f = self.func(None, state, action)
 
-        dim_state = self.dim_state[0] if isinstance(self.dim_state, tuple) else self.dim_state
-        dim_action = self.dim_action[0] if isinstance(self.dim_action, tuple) else self.dim_action
-        a = np.zeros((dim_state, dim_state))
-        b = np.zeros((dim_state, dim_action))
-        for i in range(dim_state):
+        a = np.zeros((self.dim_state[0], self.dim_state[0]))
+        b = np.zeros((self.dim_state[0], self.dim_action[0]))
+        
+        for i in range(self.dim_state[0]):
             aux = torch.autograd.grad(
                 f[i], state, allow_unused=True, retain_graph=True
             )[0]
@@ -110,6 +112,7 @@ class ODESystem(AbstractSystem):
     @state.setter
     def state(self, value):
         self._state = value
+
 
     @property
     def time(self):

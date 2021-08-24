@@ -261,7 +261,7 @@ class AbstractAgent(object, metaclass=ABCMeta):
 
             self.logger.update(**asdict(average_dataclass(losses)))
             self.logger.update(**self.algorithm.info())
-
+            print(average_dataclass(losses).policy_loss)
             self.counters["train_steps"] += 1
             if self.train_steps % self.target_update_frequency == 0:
                 self.algorithm.update()

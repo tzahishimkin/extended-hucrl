@@ -30,7 +30,8 @@ class SystemEnvironment(AbstractEnvironment, Env):
             action_space=system.action_space,
             observation_space=system.observation_space,
         )
-        self.reward = reward
+
+        self.reward = system.reward
         self.system = system
         self.termination_model = termination_model
         self._time = 0
@@ -58,7 +59,7 @@ class SystemEnvironment(AbstractEnvironment, Env):
                 .sample()
                 .squeeze(-1)
             )
-
+        # self.system._reward
         next_state = self.system.step(action)
         if self.termination_model is not None:
             done = (
